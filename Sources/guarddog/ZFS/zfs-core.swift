@@ -113,18 +113,21 @@ public class ZFS {
                 print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert data blob to string with UTF-8 encoding."))
                 throw ZFSError.invalidData
             }
+            print(Colors.magenta("\(asString)"))
 			let poolElements = asString.split(whereSeparator: {
                 return $0.isWhitespace
             })
+            print(Colors.dim("\(poolElements)"))
 			guard poolElements.count == 10 else {
 				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to create zpool structure because incorrect data was sent to this function."))
 				throw ZFSError.invalidData
 			}
 			name = String(poolElements[0])
+			print(Colors.yellow("zpool identified: \(poolElements[0])"))
 			let sizeString = String(poolElements[1])
 			let allocString = String(poolElements[2])
 			let freeString = String(poolElements[3])
-			//expandsz is not stored. idgaf
+			//expandsz (index 4) is not stored. idgaf
 			let fragString = String(poolElements[5])
 			let capString = String(poolElements[6])
 			let dedupString = String(poolElements[7])
