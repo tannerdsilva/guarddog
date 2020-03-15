@@ -135,14 +135,33 @@ public class ZFS {
             let altrootString = String(poolElements[9])
             
             //parse the relevant variables
-            guard   let convertedSize = DataSize.fromZFSSizeString(sizeString),
-                    let convertedAlloc = DataSize.fromZFSSizeString(allocString),
-                    let convertedFree = DataSize.fromZFSSizeString(freeString),
-                    let fragPercent = fragString.parsePercentage(),
-                    let capacityPercent = capString.parsePercentage(),
-                    let dedupMultiplier = dedupString.parseMultiplier(),
-                    let parsedHealth = ZFS.Health(description:healthString) else {
-                        throw ZFSError.invalidData
+            guard   let convertedSize = DataSize.fromZFSSizeString(sizeString) else {
+            	print(Colors.red("[ ZFS ]{ size }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let convertedAlloc = DataSize.fromZFSSizeString(allocString) else {
+            	print(Colors.red("[ ZFS ]{ alloc }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let convertedFree = DataSize.fromZFSSizeString(freeString) else {
+            	print(Colors.red("[ ZFS ]{ free }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let fragPercent = fragString.parsePercentage() else {
+            	print(Colors.red("[ ZFS ]{ frag% }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let capacityPercent = capString.parsePercentage() else {
+            	print(Colors.red("[ ZFS ]{ cap% }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let dedupMultiplier = dedupString.parseMultiplier() else {
+            	print(Colors.red("[ ZFS ]{ dedupX }\tUnable to parse."))
+                throw ZFSError.invalidData
+            }
+            guard	let parsedHealth = ZFS.Health(description:healthString) else {
+            	print(Colors.red("[ ZFS ]{ health }\tUnable to parse."))
+                throw ZFSError.invalidData
             }
             
             volume = convertedSize
