@@ -9,7 +9,7 @@ Signals.trap(signal: .int) { signal in
 	print("Interrupt signal caught")
 	interruptSignal.signal()
 }
-print(Colors.Cyan("watchdog initialized."))
+print(Colors.Cyan("guarddog initialized."))
 
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
