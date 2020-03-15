@@ -13,10 +13,14 @@ public enum DataSize {
 	
 	public static func fromZFSSizeString(_ sizeString:String) -> DataSize? {
 		var sizeStringToModify = sizeString
+		print(Colors.dim("Starting with string: \(sizeString)"))
 		let lastCharacter = sizeStringToModify.removeLast()
-        guard let sizeAsDouble = Double(sizeString) else {
+		print(Colors.dim("Extracted last character: \(lastCharacter)"))
+        guard let sizeAsDouble = Double(sizeStringToModify) else {
+        	print(Colors.red("This is not a double value: \(sizeStringToModify)"))
             return nil
         }
+        print(Colors.dim("Double parsed as: \(sizeAsDouble)"))
         switch lastCharacter {
             case "Z", "z":
                 return .zettabytes(sizeAsDouble)
