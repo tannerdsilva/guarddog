@@ -2072,8 +2072,8 @@ internal class BIntMath
 
 		for i in 0..<Int(limbs)
 		{
-			res[i] = Limb(arc4random_uniform(UInt32.max)) |
-				(Limb(arc4random_uniform(UInt32.max)) << 32)
+			res[i] = Limb(UInt32.random(in:0...UInt32.max)) |
+				(Limb(UInt32.random(in:0...UInt32.max)) << 32)
 		}
 
 		if singleBits > 0
@@ -2082,17 +2082,17 @@ internal class BIntMath
 
 			if singleBits < 32
 			{
-				last = Limb(arc4random_uniform(UInt32(2 ** singleBits)))
+				last = Limb(UInt32.random(in:0...UInt32(2 ** singleBits)))
 
 			}
 			else if singleBits == 32
 			{
-				last = Limb(arc4random_uniform(UInt32.max))
+				last = Limb(UInt32.random(in:0...UInt32.max))
 			}
 			else
 			{
-				last = Limb(arc4random_uniform(UInt32.max)) |
-					(Limb(arc4random_uniform(UInt32(2.0 ** (singleBits - 32)))) << 32)
+				last = Limb(UInt32.random(in:0...UInt32.max)) |
+					( Limb(UInt32.random(in:0...UInt32(2.0 ** (singleBits - 32)))) << 32 )
 			}
 			if last != 0 { res.append(last) }
 		}
