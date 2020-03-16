@@ -83,6 +83,7 @@ struct SystemProcess:Hashable {
 		let fullDate = monString + " " + dayString + " " + timeString + " " + yearString
 		guard let dateObject = dateFormatter.date(from:fullDate) else {
 			print(Colors.Red("[SystemProcess]{ INIT ERROR }\tUnable to convert date string to date object."))
+			print(Colors.dim("\(lineAsString)"))
 			return nil
 		}
 		startedOn = dateObject
