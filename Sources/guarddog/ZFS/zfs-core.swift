@@ -1,69 +1,61 @@
 import TToolkit
 import Foundation
 
-public enum DataSize {
-	case zettabytes(Double)
-	case exabytes(Double)
-	case petabytes(Double)
-	case terabytes(Double)
-	case gigabytes(Double)
-	case megabytes(Double)
-	case kilobytes(Double)
-	case bytes(Int)
-	
-	public static func fromZFSSizeString(_ sizeString:String) -> DataSize? {
-		var sizeStringToModify = sizeString
-		print(Colors.dim("Starting with string: \(sizeString)"))
-		let lastCharacter = sizeStringToModify.removeLast()
-		print(Colors.dim("Extracted last character: \(lastCharacter)"))
-        guard let sizeAsDouble = Double(sizeStringToModify) else {
-        	print(Colors.red("This is not a double value: \(sizeStringToModify)"))
-            return nil
-        }
-        print(Colors.dim("Double parsed as: \(sizeAsDouble)"))
-        switch lastCharacter {
-            case "Z", "z":
-                return .zettabytes(sizeAsDouble)
-            case "E", "e":
-                return .exabytes(sizeAsDouble)
-            case "P", "p":
-                return .petabytes(sizeAsDouble)
-            case "T", "t":
-                return .terabytes(sizeAsDouble)
-            case "G", "g":
-                return .gigabytes(sizeAsDouble)
-            case "M", "m":
-                return .megabytes(sizeAsDouble)
-            case "K", "k":
-                return .kilobytes(sizeAsDouble)
-            case "B", "b":
-                return .bytes(Int(sizeAsDouble))
-            default:
-                return nil
-        }
-	}
-}
+//public enum DataSize {
+//	case zettabytes(Double)
+//	case exabytes(Double)
+//	case petabytes(Double)
+//	case terabytes(Double)
+//	case gigabytes(Double)
+//	case megabytes(Double)
+//	case kilobytes(Double)
+//	case bytes(Int)
+//	
+//	public static func fromZFSSizeString(_ sizeString:String) -> DataSize? {
+//		var sizeStringToModify = sizeString
+//		let lastCharacter = sizeStringToModify.removeLast()
+//        guard let sizeAsDouble = Double(sizeStringToModify) else {
+//        	print(Colors.red("This is not a double value: \(sizeStringToModify)"))
+//            return nil
+//        }
+//        switch lastCharacter {
+//            case "Z", "z":
+//                return .zettabytes(sizeAsDouble)
+//            case "E", "e":
+//                return .exabytes(sizeAsDouble)
+//            case "P", "p":
+//                return .petabytes(sizeAsDouble)
+//            case "T", "t":
+//                return .terabytes(sizeAsDouble)
+//            case "G", "g":
+//                return .gigabytes(sizeAsDouble)
+//            case "M", "m":
+//                return .megabytes(sizeAsDouble)
+//            case "K", "k":
+//                return .kilobytes(sizeAsDouble)
+//            case "B", "b":
+//                return .bytes(Int(sizeAsDouble))
+//            default:
+//                return nil
+//        }
+//	}
+//}
 
 extension String {
     fileprivate func parsePercentage() -> Double? {
-        var stringToModify = self
-        let lastCharacter = stringToModify.removeLast()
-        guard let doubleConverted = Double(stringToModify), lastCharacter == "%" else {
+        guard let doubleConverted = Double(self) else {
             return nil
         }
         return doubleConverted / 100
     }
     
     fileprivate func parseMultiplier() -> Double? {
-        var stringToModify = self
-        let lastCharacter = stringToModify.removeLast()
-        guard let doubleConverted = Double(stringToModify), lastCharacter == "x" else {
+        guard let doubleConverted = Double(self) else {
             return nil
         }
         return doubleConverted
     }
 }
-
 
 public class ZFS {
 	public enum ZFSError: Error {
@@ -96,21 +88,39 @@ public class ZFS {
             }
         }
 	}
+		
+	public struct Dataset:Hashable {
+		enum DatasetType:UInt8 {
+			case filesystem
+			case volume
+			case snapshot
+			case bookmark
+		}
+		
+		var type:DatasetType
+		
+		var name:String
+		
+		public let refer:BInt
+		public let allocated:BInt
+		public let free:BInt
+	}
 	
 	public struct ZPool:Hashable {
-		let name:String
-		let volume:DataSize
-		let allocated:DataSize
-		let free:DataSize
+		public let name:String
 		
-		let frag:Double
-		let cap:Double
-        
-        let dedup:Double
+		public let volume:BInt
+		public let allocated:BInt
+		public let free:BInt
 		
-		let health:Health
+		public let frag:Double
+		public let cap:Double
         
-        let altroot:URL?
+        public let dedup:Double
+		
+		public let health:Health
+        
+        public let altroot:URL?
 		
 		init(_ lineData:Data) throws {
             guard let asString = String(data:lineData, encoding:.utf8) else {
@@ -127,7 +137,6 @@ public class ZFS {
 				throw ZFSError.invalidData
 			}
 			name = String(poolElements[0])
-			print(Colors.yellow("zpool identified: \(poolElements[0])"))
 			let sizeString = String(poolElements[1])
 			let allocString = String(poolElements[2])
 			let freeString = String(poolElements[3])
@@ -139,32 +148,25 @@ public class ZFS {
             let altrootString = String(poolElements[9])
             
             //parse the relevant variables
-            guard   let convertedSize = DataSize.fromZFSSizeString(sizeString) else {
-            	print(Colors.red("[ ZFS ]{ size }\tUnable to parse."))
+            guard   let convertedSize = BInt(sizeString) else {
                 throw ZFSError.invalidData
             }
-            guard	let convertedAlloc = DataSize.fromZFSSizeString(allocString) else {
-            	print(Colors.red("[ ZFS ]{ alloc }\tUnable to parse."))
+            guard	let convertedAlloc = BInt(allocString) else {
                 throw ZFSError.invalidData
             }
-            guard	let convertedFree = DataSize.fromZFSSizeString(freeString) else {
-            	print(Colors.red("[ ZFS ]{ free }\tUnable to parse."))
+            guard	let convertedFree = BInt(freeString) else {
                 throw ZFSError.invalidData
             }
             guard	let fragPercent = fragString.parsePercentage() else {
-            	print(Colors.red("[ ZFS ]{ frag% }\tUnable to parse."))
                 throw ZFSError.invalidData
             }
             guard	let capacityPercent = capString.parsePercentage() else {
-            	print(Colors.red("[ ZFS ]{ cap% }\tUnable to parse."))
                 throw ZFSError.invalidData
             }
             guard	let dedupMultiplier = dedupString.parseMultiplier() else {
-            	print(Colors.red("[ ZFS ]{ dedupX }\tUnable to parse."))
                 throw ZFSError.invalidData
             }
             guard	let parsedHealth = ZFS.Health(description:healthString) else {
-            	print(Colors.red("[ ZFS ]{ health }\tUnable to parse."))
                 throw ZFSError.invalidData
             }
             
@@ -197,7 +199,7 @@ public class ZFS {
 		//runs a shell command to list all available ZFS pools, returns a set of ZPool objects
 		public static func all() throws -> Set<ZPool> {
 			let currentHost = Host.local
-			let runResult = try currentHost.runSync("zpool list -H")
+			let runResult = try currentHost.runSync("zpool list -p -H")
 			if runResult.succeeded == false {
 				return Set<ZPool>()
 			} else {
@@ -217,7 +219,7 @@ public class ZFS {
 -v display verbose data error information
 -x only display status for bools that are exhibiting errors that are otherwise unavailable
 
-
+sudo zfs list -p -o available,used,type,
 == dataset native properties
 The following properties are supported:
 
