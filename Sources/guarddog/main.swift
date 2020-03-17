@@ -18,7 +18,7 @@ let zpools = try ZFS.ZPool.all()
 for (_, curPool) in zpools.enumerated() {
 	let datasets = try curPool.listDatasets()
 }
-let zpoolDescendant = zpools.explode(using: { (n, thisZpool) in -> (key:ZPool, value:Set<Dataset>)
+let zpoolDescendant = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:Set<ZFS.Dataset>) in
 	return (key:thisZpool, value:try thisZpool.listDatasets())
 })
 print(Colors.green("\(zpoolDescendant.count)"))
