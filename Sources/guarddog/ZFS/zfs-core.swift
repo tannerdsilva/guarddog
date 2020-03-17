@@ -301,6 +301,8 @@ public class ZFS {
 	}
 		
 	public struct Dataset:Hashable {
+		fileprivate static let listCommand = "zfs list -p -H -o guid,type,name,creation,reservation,refer,used,available,quota,refquota,volsize,com.guarddog:auto-snapshot"
+		
 		public var type:DatasetType
 		
 		public var guid:String
@@ -403,6 +405,8 @@ public class ZFS {
 	}
 	
 	public struct ZPool:Hashable {
+		fileprivate static let listCommand = "zpool list -p -H"
+		
 		public let name:String
 		
 		public let volume:BInt
@@ -421,7 +425,7 @@ public class ZFS {
 		//runs a shell command to list all available ZFS pools, returns a set of ZPool objects
 		public static func all() throws -> Set<ZPool> {
 			let currentHost = Host.local
-			let runResult = try currentHost.runSync("zpool list -p -H")
+			let runResult = try currentHost.runSync(Self.listCommand)
 			if runResult.succeeded == false {
 				return Set<ZPool>()
 			} else {
@@ -480,8 +484,13 @@ public class ZFS {
 		}
 		
 		public func listDatasets() throws -> Set<Dataset> {
+			return try listDatasets(depth:1)
+		}
+		
+		public func listDatasets(depth:UInt) throws -> Set<Dataset> {
 			let currentHost = Host.local
-			let datasetList = try currentHost.runSync("zfs list -p -H -o guid,type,name,creation,reservation,refer,used,available,quota,refquota,volsize,com.guarddog:auto-snapshot")
+			var shellCommand = Dataset.listCommand + " -d " + String(depth) + " " + name
+			let datasetList = try currentHost.runSync(shellCommand)
 			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:self, $0) }))
 			return datasets
 		}
