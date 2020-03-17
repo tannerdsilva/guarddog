@@ -22,7 +22,7 @@ let poolDatasets = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, val
 for (_, kv) in poolDatasets.enumerated() {
 	for (_, curDS) in kv.value.enumerated() {
 		print(Colors.cyan("\(curDS.name.consolidatedString())"))
-		let listedDataset = try curDS.listDatasets(types:[ZFS.DatasetType.snapshot])
+		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 		print(Colors.yellow("\(listedDataset.count)"))
 	}
 }
