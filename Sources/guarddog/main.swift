@@ -19,13 +19,21 @@ let poolDatasets = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, val
 	return (key:thisZpool, value:try thisZpool.listDatasets(depth:nil))
 })
 
-for (_, kv) in poolDatasets.enumerated() {
+poolDatasets.explode(using: { (n, kv) -> Void in
 	for (_, curDS) in kv.value.enumerated() {
 		print(Colors.cyan("\(curDS.name.consolidatedString())"))
 		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 		print(Colors.yellow("\(listedDataset.count)"))
 	}
-}
+})
+
+//for (_, kv) in poolDatasets.enumerated() {
+//	for (_, curDS) in kv.value.enumerated() {
+//		print(Colors.cyan("\(curDS.name.consolidatedString())"))
+//		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+//		print(Colors.yellow("\(listedDataset.count)"))
+//	}
+//}
 
 struct SystemProcess:Hashable {
 	var pid:UInt64
