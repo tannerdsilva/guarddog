@@ -117,8 +117,6 @@ public class ZFS {
 					return nil
 				}
 			}
-			print(Colors.cyan("[ VALUE ]( \(valueString) )"))
-			print(Colors.yellow("[ TYPE ]( \(typeString) )"))
 			if let parsedValue = Double(valueString), let snapFreq = SnapshotFrequency(typeString) {
 				return (value:parsedValue, freq:snapFreq)
 			} else {
@@ -399,8 +397,13 @@ public class ZFS {
 			if sscString == "-" {
 				snapshotCommands = nil
 			} else {
-				snapshotCommands = SnapshotCommand.parse(sscString)
-				print(Colors.magenta("[ ZFS ]\tsnapshot command initialized: \(snapshotCommands)"))
+				let parsedSnapshots = SnapshotCommand.parse(sscString)
+				guard parsedSnapshots.count != 0 else {
+					print(Colors.Red("[ ZFS ]{ ERROR }\tExpected to parse snapshots but did not find any valid snapshot subcommands"))
+					return nil
+				}
+				snapshotCommands = parsedSnapshots
+				print(Colors.magenta("[ ZFS ]\tsnapshot command initialized: \(parsedSnapshots)"))
 			}
 		}
 	}
@@ -488,9 +491,14 @@ public class ZFS {
 			return try listDatasets(depth:1)
 		}
 		
-		public func listDatasets(depth:UInt) throws -> Set<Dataset> {
+		public func listDatasets(depth:UInt?) throws -> Set<Dataset> {
 			let currentHost = Host.local
-			var shellCommand = Dataset.listCommand + " -d " + String(depth) + " " + name
+			let shellCommand:String
+			if let hasDepth = depth {
+				shellCommand = Dataset.listCommand + " -d " + String(hasDepth) + " " + name
+			} else {
+				shellCommand = Dataset.listCommand + " " + name
+			}
 			let datasetList = try currentHost.runSync(shellCommand)
 			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:self, $0) }))
 			return datasets
