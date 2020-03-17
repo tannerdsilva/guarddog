@@ -15,12 +15,10 @@ print(Colors.dim("* woof *"))
 
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
-for (_, curPool) in zpools.enumerated() {
-	let datasets = try curPool.listDatasets()
-}
 let zpoolDescendant = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:Set<ZFS.Dataset>) in
-	return (key:thisZpool, value:try thisZpool.listDatasets())
+	return (key:thisZpool, value:try thisZpool.listDatasets(depth:nil))
 })
+
 print(Colors.green("\(zpoolDescendant.count)"))
 
 struct SystemProcess:Hashable {
@@ -113,31 +111,31 @@ struct SystemProcess:Hashable {
 	}
 }
 
-let processes = try SystemProcess.list()
+//let processes = try SystemProcess.list()
 //print(processes)
 
-class ProcessChecker {
-	let shell:HostContext
-	let timer:TTimer
-	
-	init(_ shell:HostContext) {
-		self.shell = shell
-		self.timer = TTimer(seconds:2) { _ in
-            do {
-                let processCheck = try shell.runSync("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command")
-                if processCheck.exitCode == 0 {
-                    var lineStrings = processCheck.stdout.compactMap { String(data:$0, encoding:.utf8) }
-                    lineStrings.remove(at:0)
-//                    let lineProcesses = lineStrings.compactMap { }
-                } else {
-                    print(Colors.Red("(Date()) - [SHELL][ERROR] - Unable to execute 'ps axo ...' to analyze processes"))
-                }
-            } catch _ {
-                print(Colors.Red("there was an error trying to run the shell"))
-            }
-        }
-	}
-}
+//class ProcessChecker {
+//	let shell:HostContext
+//	let timer:TTimer
+//	
+//	init(_ shell:HostContext) {
+//		self.shell = shell
+//		self.timer = TTimer(seconds:2) { _ in
+//            do {
+//                let processCheck = try shell.runSync("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,command")
+//                if processCheck.exitCode == 0 {
+//                    var lineStrings = processCheck.stdout.compactMap { String(data:$0, encoding:.utf8) }
+//                    lineStrings.remove(at:0)
+////                    let lineProcesses = lineStrings.compactMap { }
+//                } else {
+//                    print(Colors.Red("(Date()) - [SHELL][ERROR] - Unable to execute 'ps axo ...' to analyze processes"))
+//                }
+//            } catch _ {
+//                print(Colors.Red("there was an error trying to run the shell"))
+//            }
+//        }
+//	}
+//}
 
 interruptSignal.wait()
 
