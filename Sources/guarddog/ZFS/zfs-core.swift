@@ -400,6 +400,7 @@ public class ZFS {
 				snapshotCommands = nil
 			} else {
 				snapshotCommands = SnapshotCommand.parse(sscString)
+				print(Colors.magenta("[ ZFS ]\tsnapshot command initialized: \(snapshotCommands)"))
 			}
 		}
 	}
