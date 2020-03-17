@@ -55,12 +55,223 @@ extension String {
         }
         return doubleConverted
     }
+    
+    fileprivate func parseSize() -> BInt? {
+		return BInt(self)
+    }
 }
 
 public class ZFS {
-	public enum ZFSError: Error {
-		case invalidData
+	/*
+	SnapshotFrequency is used to specify a duration of time which a dataset is supposed to be snapshotted
+	*/
+	public enum SnapshotFrequency:UInt8 {
+		case month = 1
+		case day = 2
+		case hour = 3
+		case minute = 4
+		case seconds = 5
+		
+		/*
+		This will convert a given SnapshotFrequency variable to an explicit duration value in seconds
+		*/
+		public func secondsInterval(units:Double) -> Double {
+			switch self {
+				case .month:
+				return units * 2629800
+				case .day:
+				return units * 86400
+				case .hour:
+				return units * 3600
+				case .minute:
+				return units * 60
+				case .seconds:
+				return units
+			}
+		}
+		
+		/*
+		=======================================================================
+		This function parses a human-written shapshot frequency command.
+		This is an example of a snapshot frequency command:
+		=======================================================================
+		24h		-	Every 24 hours
+		0.5h	-	Every half hour
+		30m		-	Every half hour
+		0.75s	-	Every 75 milliseconds
+		=======================================================================
+		There are two elements to a snapshot frequency command:
+			-	frequency: what is the base unit that we are using to represent a given duration in time?
+			-	value: what is the value of this base unit? (example of a base unit: *24* is the value in *24 hours*)
+		=======================================================================
+		*/
+		fileprivate static func parse(_ humanCommand:String) -> (value:Double, freq:SnapshotFrequency)? {
+			var valueString = ""
+			var typeString = ""
+			for (_, curChar) in humanCommand.enumerated() {
+				if curChar.isNumber == true || curChar == "." {
+					valueString.append(curChar)
+				} else if curChar.isLetter == true {
+					typeString.append(curChar)
+				} else {
+					return nil
+				}
+			}
+			print(Colors.cyan("[ VALUE ]( \(valueString) )"))
+			print(Colors.yellow("[ TYPE ]( \(typeString) )"))
+			if let parsedValue = Double(valueString), let snapFreq = SnapshotFrequency(typeString) {
+				return (value:parsedValue, freq:snapFreq)
+			} else {
+				return nil
+			}
+		}
+		
+		/*
+		========================================================================
+		Note: Presumably this initializer would get called by another function that is able to separate the value from the frequency description
+		========================================================================
+		This initializer takes a string that describes (in as few characters as possible) the frequency needed for the variable
+		========================================================================
+		*/
+		public init?<T>(_ descriptionString:T) where T:StringProtocol {
+			switch descriptionString.lowercased() {
+				case "mo":
+					self = .month
+				case "d":
+					self = .day
+				case "h":
+					self = .hour
+				case "m", "mi":
+					self = .minute
+				case "s":
+					self = .seconds
+				default:
+					return nil
+			}
+		}
 	}
+	
+	/*
+	===============================================================================
+	A snapshot command is made of a frequency and the units for that frequency.
+	The keep value is the maximum number of snapshots that are to be retained
+	===============================================================================
+	Example: A SnapshotCommand that triggers a snapshot every 2.5 seconds
+	-------------------------------------------------------------------------------
+		- frequency = .seconds
+		- units = 2.5
+		- keep	= 45
+	-------------------------------------------------------------------------------
+	Written as a human: "2.5s:45"
+	===============================================================================
+	*/
+	public struct SnapshotCommand:Hashable {
+		var frequency:SnapshotFrequency
+		var units:Double
+		var keep:UInt?
+		
+		//parses a string containing multiple snapshot commands, separated by a comma
+		public static func parse(_ commands:String) -> Set<SnapshotCommand> {
+			let subcommands = commands.split(separator:",")
+			var snapCommands = Set<SnapshotCommand>()
+			for (_, curSnapshotCommand) in subcommands.enumerated() {
+				if let didConvertToCommand = SnapshotCommand(curSnapshotCommand) {
+					_ = snapCommands.update(with:didConvertToCommand)
+				}
+			}
+			return snapCommands
+		}
+		
+		//create a snapshot command with explicit values
+		public init(frequency:SnapshotFrequency, units:Double) {
+			self.frequency = frequency
+			self.units = units
+		}
+		
+		//try to parse a single snapshot command
+		public init?<T>(_ singleCommand:T) where T:StringProtocol {
+			guard singleCommand != "-" else {
+				return nil
+			}
+			
+			let commandBreakdown = singleCommand.split(separator:":")
+			switch commandBreakdown.count {
+				case 1:
+				let firstString = String(commandBreakdown[0])
+				guard	let frequencyCommand = SnapshotFrequency.parse(firstString) else {
+					return nil		
+				}
+				keep = nil
+				units = frequencyCommand.value
+				frequency = frequencyCommand.freq
+				
+				case 2:
+				let firstString = String(commandBreakdown[0])
+				let secondString = String(commandBreakdown[1])
+				guard	let parsedKeep = UInt(secondString),
+						let frequencyCommand = SnapshotFrequency.parse(firstString) else { 
+					return nil
+				}
+				keep = parsedKeep
+				units = frequencyCommand.value
+				frequency = frequencyCommand.freq
+					
+				default:
+				return nil
+			}
+		}
+		
+		public func hash(into hasher:inout Hasher) {
+			hasher.combine(frequency)
+			hasher.combine(units)
+			if let hasKeepValue = keep {
+				hasher.combine(hasKeepValue)
+			}
+		}
+	}
+	
+	/*
+	==============================================================
+	In ZFS, a dataset can have four types.
+	==============================================================
+		1. Filesystem: traditional filesystem structure with files and directories. Mounts to a mountpoint
+		2. Volume: block storage device that typically can be found in /dev/zvol/
+		3. Snapshot: If you dont know what zfs snapshots are, then I dont even know how you found this library in the first place
+		4. Bookmarks: Markers that are assigned to snapshots. Helpful for tracking states (or 'heads') of snapshots
+	==============================================================
+	*/
+	public enum DatasetType:UInt8 {
+		case filesystem
+		case volume
+		case snapshot
+		case bookmark
+		
+		init?(_ input:String) {
+			switch input.lowercased() {
+				case "filesystem":
+				self = .filesystem
+				
+				case "volume":
+				self = .volume
+				
+				case "snapshot":
+				self = .snapshot
+				
+				case "bookmark":
+				self = .bookmark
+				
+				default:
+				return nil
+			}
+		}
+	}
+	
+	
+	/*
+	===========================================================
+	The health enum is used to describe the state of a zpool
+	===========================================================
+	*/
 	public enum Health:UInt8 {
 		case degraded = 0
         case faulted = 1
@@ -90,20 +301,105 @@ public class ZFS {
 	}
 		
 	public struct Dataset:Hashable {
-		enum DatasetType:UInt8 {
-			case filesystem
-			case volume
-			case snapshot
-			case bookmark
-		}
+		public var type:DatasetType
 		
-		var type:DatasetType
+		public var guid:String
 		
-		var name:String
+		public var name:String
+		public var namePath:[String]
+		
+		public var zpool:ZPool
+		
+		public let creation:Date
+		
+		public let reserved:BInt
 		
 		public let refer:BInt
-		public let allocated:BInt
+		public let used:BInt
 		public let free:BInt
+		
+		public let quota:BInt
+		public let refQuota:BInt
+		
+		public let volumeSize:BInt?	// should be nil where type != .volume 
+		
+		public let snapshotCommands:Set<SnapshotCommand>?
+		
+		/*
+		meant to initialize with data from the following command
+		zfs list -p -H -o guid,type,name,creation,reservation,refer,used,available,quota,refquota,volsize,com.guarddog:auto-snapshot
+		*/
+		fileprivate init?(zpool:ZPool, _ lineData:Data) {
+			guard let asString = String(data:lineData, encoding:.utf8) else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert input data blob to string with UTF-8 encoding."))
+				return nil
+			}
+			let dsColumns = asString.split(whereSeparator: { $0.isWhitespace })
+			guard dsColumns.count == 10 else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert input data to columns. There must be 10 columns"))
+				return nil
+			}
+			
+			guid = String(dsColumns[0])
+			
+			let typeString = String(dsColumns[1])
+			guard let parsedType = DatasetType(typeString) else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to parse the parse of this dataset. Parse string given: \(typeString)"))
+				return nil
+			}
+			self.zpool = zpool
+			type = parsedType
+			
+			name = String(dsColumns[2])
+			namePath = name.split(separator:"/").compactMap({ String($0) })
+			
+			let creationString = String(dsColumns[3])
+			guard let creationDouble = Double(creationString) else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert the creation date of this dataset to a valid date object."))
+				return nil
+			}
+			creation = Date(timeIntervalSince1970:creationDouble)
+
+			let reservString = String(dsColumns[4]) 	// might not be specified (0 when no value is given)
+			let referString = String(dsColumns[5])		// guaranteed
+			let usedString = String(dsColumns[6])		// guaranteed
+			let availString = String(dsColumns[7])		// guaranteed
+			let quotaString = String(dsColumns[8])		// might not be specified (0 when no value is given)
+			let refQuotaString = String(dsColumns[9])	// might not be specified (0 when no value is given) 
+
+			guard	let parsedReserve = BInt(reservString),
+					let parsedRefer = BInt(referString),
+					let parsedUsed = BInt(usedString),
+					let parsedAvail = BInt(availString),
+					let parsedQuota = BInt(quotaString),
+					let parsedRefQuota = BInt(refQuotaString) else {
+				return nil
+			}
+			reserved = parsedReserve
+			refer = parsedRefer
+			used = parsedUsed
+			free = parsedAvail
+			quota = parsedQuota
+			refQuota = parsedRefQuota
+			
+			let volSizeString = String(dsColumns[10])	// might not be specified (- when no value is specified)
+			if volSizeString == "-" {
+				volumeSize = nil
+			} else {
+				guard let parsedVolSize = BInt(volSizeString) else {
+					print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to parse the volume size of this dataset. String given: \(volSizeString)"))
+					return nil
+				}
+				volumeSize = parsedVolSize
+			}
+			
+			let sscString = String(dsColumns[11]) // might not be specified ('-' when no value is given)
+			if sscString == "-" {
+				snapshotCommands = nil
+			} else {
+				snapshotCommands = SnapshotCommand.parse(sscString)
+			}
+		}
 	}
 	
 	public struct ZPool:Hashable {
@@ -122,19 +418,26 @@ public class ZFS {
         
         public let altroot:URL?
 		
-		init(_ lineData:Data) throws {
+		//runs a shell command to list all available ZFS pools, returns a set of ZPool objects
+		public static func all() throws -> Set<ZPool> {
+			let currentHost = Host.local
+			let runResult = try currentHost.runSync("zpool list -p -H")
+			if runResult.succeeded == false {
+				return Set<ZPool>()
+			} else {
+				return Set(runResult.stdout.compactMap { ZPool($0) })
+			}
+		}
+
+		fileprivate init?(_ lineData:Data) {
             guard let asString = String(data:lineData, encoding:.utf8) else {
                 print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert data blob to string with UTF-8 encoding."))
-                throw ZFSError.invalidData
+                return nil
             }
-            print(Colors.magenta("\(asString)"))
-			let poolElements = asString.split(whereSeparator: {
-                return $0.isWhitespace
-            })
-            print(Colors.dim("\(poolElements)"))
+			let poolElements = asString.split(whereSeparator: { $0.isWhitespace })
 			guard poolElements.count == 10 else {
 				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to create zpool structure because incorrect data was sent to this function."))
-				throw ZFSError.invalidData
+				return nil
 			}
 			name = String(poolElements[0])
 			let sizeString = String(poolElements[1])
@@ -147,29 +450,17 @@ public class ZFS {
 			let healthString = String(poolElements[8])
             let altrootString = String(poolElements[9])
             
-            //parse the relevant variables
-            guard   let convertedSize = BInt(sizeString) else {
-                throw ZFSError.invalidData
-            }
-            guard	let convertedAlloc = BInt(allocString) else {
-                throw ZFSError.invalidData
-            }
-            guard	let convertedFree = BInt(freeString) else {
-                throw ZFSError.invalidData
-            }
-            guard	let fragPercent = fragString.parsePercentage() else {
-                throw ZFSError.invalidData
-            }
-            guard	let capacityPercent = capString.parsePercentage() else {
-                throw ZFSError.invalidData
-            }
-            guard	let dedupMultiplier = dedupString.parseMultiplier() else {
-                throw ZFSError.invalidData
-            }
-            guard	let parsedHealth = ZFS.Health(description:healthString) else {
-                throw ZFSError.invalidData
-            }
-            
+            //parse the primary variables
+            guard	let convertedSize = BInt(sizeString),
+            		let convertedAlloc = BInt(allocString),
+            		let convertedFree = BInt(freeString),
+            		let fragPercent = fragString.parsePercentage(),
+            		let capacityPercent = capString.parsePercentage(),
+            		let dedupMultiplier = dedupString.parseMultiplier(),
+            		let healthObject = ZFS.Health(description:healthString) else {
+            	return nil		
+        	}
+
             volume = convertedSize
             allocated = convertedAlloc
             free = convertedFree
@@ -179,13 +470,20 @@ public class ZFS {
             
             dedup = dedupMultiplier
             
-            health = parsedHealth
+            health = healthObject
             
             if altrootString == "-" || altrootString.contains("/") == false {
                 altroot = nil
             } else {
                 altroot = URL(fileURLWithPath:altrootString)
             }
+		}
+		
+		public func listDatasets() throws -> Set<Dataset> {
+			let currentHost = Host.local
+			let datasetList = try currentHost.runSync("zfs list -p -H -o guid,type,name,creation,reservation,refer,used,available,quota,refquota,volsize,com.guarddog:auto-snapshot")
+			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:self, $0) }))
+			return datasets
 		}
 		
 		public func hash(into hasher:inout Hasher) {
@@ -195,17 +493,6 @@ public class ZFS {
         public static func == (lhs:ZPool, rhs:ZPool) -> Bool {
             return lhs.name == rhs.name
         }
-		
-		//runs a shell command to list all available ZFS pools, returns a set of ZPool objects
-		public static func all() throws -> Set<ZPool> {
-			let currentHost = Host.local
-			let runResult = try currentHost.runSync("zpool list -p -H")
-			if runResult.succeeded == false {
-				return Set<ZPool>()
-			} else {
-				return Set(runResult.stdout.compactMap { try? ZPool($0) })
-			}
-		}
 	}
 }
 
@@ -219,7 +506,7 @@ public class ZFS {
 -v display verbose data error information
 -x only display status for bools that are exhibiting errors that are otherwise unavailable
 
-sudo zfs list -p -o available,used,type,
+sudo zfs list -p -o available,used,refer,volsize
 == dataset native properties
 The following properties are supported:
 
