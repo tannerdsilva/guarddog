@@ -33,17 +33,17 @@ class PoolWatcher {
 
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
-let poolDatasets = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:Set<ZFS.Dataset>) in
-	return (key:thisZpool, value:try thisZpool.listDatasets(depth:nil))
+let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
+	return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
 })
-
-poolDatasets.explode(using: { (n, kv) -> Void in
-	for (_, curDS) in kv.value.enumerated() {
-		print(Colors.cyan("\(curDS.name.consolidatedString())"))
-		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
-		print(Colors.yellow("\(listedDataset.count)"))
-	}
-})
+//
+//poolDatasets.explode(using: { (n, kv) -> Void in
+//	for (_, curDS) in kv.value.enumerated() {
+//		print(Colors.cyan("\(curDS.name.consolidatedString())"))
+//		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+//		print(Colors.yellow("\(listedDataset.count)"))
+//	}
+//})
 
 
 struct SystemProcess:Hashable {
