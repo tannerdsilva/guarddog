@@ -13,6 +13,24 @@ Signals.trap(signal: .int) { signal in
 print(Colors.Cyan("guarddog initialized."))
 print(Colors.dim("* woof *"))
 
+class PoolWatcher {
+	var zpool:ZFS.ZPool
+	
+	var snapshots:[ZFS.Dataset:Set<ZFS.Dataset>]
+	
+	init(zpool:ZFS.ZPool) throws {
+		self.zpool = zpool
+		
+		let datasetsForPool = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
+		print(Colors.Cyan("Initializing PoolWatcher for \(zpool.name) with \(datasetsForPool.count) datasets."))
+		
+		snapshots = datasetsForPool.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
+			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+			return (key:thisDS, value:thisDSSnapshots)
+		})
+	}
+}
+
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
 let poolDatasets = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:Set<ZFS.Dataset>) in
@@ -27,13 +45,6 @@ poolDatasets.explode(using: { (n, kv) -> Void in
 	}
 })
 
-//for (_, kv) in poolDatasets.enumerated() {
-//	for (_, curDS) in kv.value.enumerated() {
-//		print(Colors.cyan("\(curDS.name.consolidatedString())"))
-//		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
-//		print(Colors.yellow("\(listedDataset.count)"))
-//	}
-//}
 
 struct SystemProcess:Hashable {
 	var pid:UInt64
