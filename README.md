@@ -1,3 +1,3 @@
 # guarddog
 
-A description of this package.
+watches your system
