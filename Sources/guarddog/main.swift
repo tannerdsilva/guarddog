@@ -15,15 +15,13 @@ print(Colors.dim("* woof *"))
 
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
-
-print("\(zpools.count) zpools identified")
-
 for (_, curPool) in zpools.enumerated() {
-	print(Colors.cyan("\t\(curPool.name)"), terminator:"")
 	let datasets = try curPool.listDatasets()
-	print(Colors.dim(" has "), terminator:"")
-	print(Colors.yellow("\(datasets.count) datasets"))
 }
+let zpoolDescendant = zpools.explode(using: { (n, thisZpool) in -> (key:ZPool, value:Set<Dataset>)
+	return (key:thisZpool, value:try thisZpool.listDatasets())
+})
+print(Colors.green("\(zpoolDescendant.count)"))
 
 struct SystemProcess:Hashable {
 	var pid:UInt64
