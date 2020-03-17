@@ -376,6 +376,19 @@ public class ZFS {
 			poolName = pathComps.last!
 		}
 		
+		public func consolidatedString() -> String {
+			var baseString = namePath.joined(separator:"/")
+			if let hasSnapName = snapName {
+				baseString.append("@")
+				baseString.append(hasSnapName)
+			}
+			if let hasBookmarkName = bookmarkName {
+				baseString.append("#")
+				baseString.append(hasBookmarkName)
+			}
+			return baseString
+		}
+		
 		public static func == (lhs:DatasetName, rhs:DatasetName) -> Bool {
 			let nameCompare = (lhs.namePath == rhs.namePath)
 			let snapCompare = (lhs.snapName == rhs.snapName)
@@ -502,6 +515,23 @@ public class ZFS {
 				}
 				snapshotCommands = parsedSnapshots
 			}
+		}
+		
+		public func listDatasets(types:[DatasetType]) throws -> Set<Dataset> {
+			return try listDatasets(depth:nil, types:types)
+		}
+		
+		public func listDatasets(depth:UInt?, types:[DatasetType]) throws -> Set<Dataset> {
+			let currentHost = Host.local
+			var shellCommand = Self.listCommand + " " + types.buildTypeFilterFlag()
+			if let hasDepth = depth {
+				shellCommand = shellCommand + " -d " + String(hasDepth) + " " + name.consolidatedString()
+			} else {
+				shellCommand = shellCommand + " -r " + name.consolidatedString()
+			}
+			let datasetList = try currentHost.runSync(shellCommand)
+			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:zpool, $0) }))
+			return datasets
 		}
 		
 		public func hash(into hasher:inout Hasher) {
