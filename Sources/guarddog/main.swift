@@ -26,6 +26,15 @@ class PoolWatcher {
 		
 		snapshots = datasetsForPool.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+			print(Colors.magenta("\(thisDS.name.consolidatedString()) has \(thisDSSnapshots.count)"))
+			return (key:thisDS, value:thisDSSnapshots)
+		})
+	}
+	
+	func refreshDatasets() throws {
+		let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
+		snapshots = thisPoolsDatasets.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
+			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 			return (key:thisDS, value:thisDSSnapshots)
 		})
 	}
