@@ -116,7 +116,7 @@ struct SystemProcess:Hashable {
 }
 
 let processes = try SystemProcess.list()
-print(processes)
+//print(processes)
 
 class ProcessChecker {
 	let shell:HostContext
