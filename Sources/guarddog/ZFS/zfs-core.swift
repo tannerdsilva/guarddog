@@ -335,7 +335,7 @@ public class ZFS {
 				return nil
 			}
 			let dsColumns = asString.split(whereSeparator: { $0.isWhitespace })
-			guard dsColumns.count == 10 else {
+			guard dsColumns.count == 12 else {
 				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to convert input data to columns. There must be 10 columns"))
 				return nil
 			}
