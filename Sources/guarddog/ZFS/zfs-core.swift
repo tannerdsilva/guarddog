@@ -506,7 +506,7 @@ public class ZFS {
 			if let hasDepth = depth {
 				shellCommand = Dataset.listCommand + " -d " + String(hasDepth) + " " + name
 			} else {
-				shellCommand = Dataset.listCommand + " " + name
+				shellCommand = Dataset.listCommand + " -r " + name
 			}
 			let datasetList = try currentHost.runSync(shellCommand)
 			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:self, $0) }))
