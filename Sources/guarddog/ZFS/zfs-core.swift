@@ -297,6 +297,65 @@ public class ZFS {
             }
         }
 	}
+	
+	public struct DatasetName:Hashable {
+		public var poolName:String
+		public var namePath:[String]
+		
+		public var snapName:String? = nil
+		
+		public var bookmarkName:String? = nil
+		
+		init?(_ inputName:String) {
+			var baseName:String = inputName
+			//try to identify the snapshot name if it exists
+			if inputName.contains("@") == true {
+				let parseSnapshotName = baseName.components(separatedBy:"@")
+				guard parseSnapshotName.count == 2 else {
+					print(Colors.Red("[ ZFS ]{ ERROR }\tCould not parse dataset named \(inputName). '@' character identified but unable to split as expected."))
+					return nil
+				}
+				baseName = String(parseSnapshotName[0])
+				snapName = String(parseSnapshotName[1])
+			}
+			
+			//try to identify the bookmark name if it exists
+			if inputName.contains("#") == true {
+				let parseBookmarkName = baseName.components(separatedBy:"#")
+				guard parseBookmarkName.count == 2 else {
+					print(Colors.Red("[ ZFS ]{ ERROR }\tCould not parse dataset named \(inputName). '#' character identified but unable to split as expected."))
+					return nil
+				}
+				baseName = String(parseBookmarkName[0])
+				bookmarkName = String(parseBookmarkName[1])
+			}
+			
+			let pathComps = baseName.components(separatedBy:"/")
+			guard pathComps.count > 0 else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tCould not parse dataset named \(inputName). Error splitting path components."))
+				return nil
+			}
+			namePath = pathComps
+			poolName = pathComps.last!
+		}
+		
+		public static func == (lhs:DatasetName, rhs:DatasetName) -> Bool {
+			let nameCompare = (lhs.namePath == rhs.namePath)
+			let snapCompare = (lhs.snapName == rhs.snapName)
+			let bookmarkCompare = (lhs.bookmarkName == rhs.bookmarkName)
+			return (nameCompare && snapCompare && bookmarkCompare)
+		}
+		
+		public func hash(into hasher:inout Hasher) {
+			hasher.combine(namePath)
+			if let hasBookmark = bookmarkName {
+				hasher.combine(hasBookmark)
+			}
+			if let hasSnapshot = snapName {
+				hasher.combine(hasSnapshot)
+			}
+		}
+	}
 		
 	public struct Dataset:Hashable {
 		fileprivate static let listCommand = "zfs list -p -H -o guid,type,name,creation,reservation,refer,used,available,quota,refquota,volsize,com.guarddog:auto-snapshot"
@@ -305,8 +364,7 @@ public class ZFS {
 		
 		public var guid:String
 		
-		public var name:String
-		public var namePath:[String]
+		public var name:DatasetName
 		
 		public var zpool:ZPool
 		
@@ -350,8 +408,12 @@ public class ZFS {
 			self.zpool = zpool
 			type = parsedType
 			
-			name = String(dsColumns[2])
-			namePath = name.split(separator:"/").compactMap({ String($0) })
+			var dsNameString = String(dsColumns[2])
+			guard let dsName = DatasetName(dsNameString) else {
+				print(Colors.Red("[ ZFS ]{ ERROR }\tUnable to parse dataset name."))
+				return nil
+			}
+			name = dsName
 			
 			let creationString = String(dsColumns[3])
 			guard let creationDouble = Double(creationString) else {
@@ -395,7 +457,6 @@ public class ZFS {
 			
 			let sscString = String(dsColumns[11]) // might not be specified ('-' when no value is given)
 			if sscString == "-" {
-				print(Colors.dim("[ ZFS ]{ ERROR }\tnil snapshot command."))
 				snapshotCommands = nil
 			} else {
 				let parsedSnapshots = SnapshotCommand.parse(sscString)
@@ -404,7 +465,6 @@ public class ZFS {
 					return nil
 				}
 				snapshotCommands = parsedSnapshots
-				print(Colors.magenta("[ ZFS ]\tsnapshot command initialized: \(parsedSnapshots)"))
 			}
 		}
 		
