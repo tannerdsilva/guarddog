@@ -16,7 +16,7 @@ print(Colors.dim("* woof *"))
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
 let zpoolDescendant = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:Set<ZFS.Dataset>) in
-	return (key:thisZpool, value:try thisZpool.listDatasets())
+	return (key:thisZpool, value:try thisZpool.listDatasets(depth:nil))
 })
 
 print(Colors.green("\(zpoolDescendant.count)"))
