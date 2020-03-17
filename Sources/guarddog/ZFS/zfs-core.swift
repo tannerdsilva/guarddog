@@ -61,6 +61,22 @@ extension String {
     }
 }
 
+extension Collection where Element == ZFS.DatasetType {
+	/*
+	This function will convert a collection of dataset types into a string that represents these types as a command filter for ZFS
+	*/
+	fileprivate func buildTypeFilterFlag() -> String {
+		var flagString = "-t "
+		for (n, curType) in enumerated() {
+			if (n != 0) {
+				flagString.append(",")
+			}
+			flagString.append(curType.descriptionString)
+		}
+		return flagString
+	}
+}
+
 public class ZFS {
 	/*
 	SnapshotFrequency is used to specify a duration of time which a dataset is supposed to be snapshotted
@@ -239,10 +255,10 @@ public class ZFS {
 	==============================================================
 	*/
 	public enum DatasetType:UInt8 {
-		case filesystem
-		case volume
-		case snapshot
-		case bookmark
+		case filesystem = 0
+		case volume = 1
+		case snapshot = 2
+		case bookmark = 3
 		
 		init?(_ input:String) {
 			switch input.lowercased() {
@@ -262,8 +278,22 @@ public class ZFS {
 				return nil
 			}
 		}
+		
+		var descriptionString:String {
+			get {
+				switch self {
+				case .snapshot:
+					return "snapshot"
+				case .bookmark:
+					return "bookmark"
+				case .volume:
+					return "volume"
+				case .filesystem:
+					return "filesystem"
+				}
+			}
+		}
 	}
-	
 	
 	/*
 	===========================================================
@@ -279,7 +309,7 @@ public class ZFS {
         case unavailable = 5
         
         init?(description:String) {
-            switch description {
+            switch description.uppercased() {
             case "DEGRADED":
                 self = .degraded
             case "FAULTED":
@@ -298,6 +328,13 @@ public class ZFS {
         }
 	}
 	
+	/*
+	===========================================================================================================
+	ZFS datasets have a few elements to them that make them worthy of defining as a distinct data structure
+	===========================================================================================================
+	ZFS dataset name will initialize given the dataset name as a string. It will automatically parse the string for the relevant parts of information
+	===========================================================================================================
+	*/
 	public struct DatasetName:Hashable {
 		public var poolName:String
 		public var namePath:[String]
@@ -363,7 +400,6 @@ public class ZFS {
 		public var type:DatasetType
 		
 		public var guid:String
-		
 		public var name:DatasetName
 		
 		public var zpool:ZPool
@@ -556,17 +592,21 @@ public class ZFS {
             }
 		}
 		
-		public func listDatasets() throws -> Set<Dataset> {
-			return try listDatasets(depth:1)
+		public func listDatasets(depth:UInt?) throws -> Set<Dataset> {
+			return try listDatasets(depth:depth, types:[.filesystem, .volume])
 		}
 		
-		public func listDatasets(depth:UInt?) throws -> Set<Dataset> {
+		public func listDatasets() throws -> Set<Dataset> {
+			return try listDatasets(depth:1, types:[.filesystem, .volume])
+		}
+		
+		public func listDatasets(depth:UInt?, types:[DatasetType]) throws -> Set<Dataset> {
 			let currentHost = Host.local
-			let shellCommand:String
+			var shellCommand = Dataset.listCommand + " " + types.buildTypeFilterFlag()
 			if let hasDepth = depth {
-				shellCommand = Dataset.listCommand + " -d " + String(hasDepth) + " " + name
+				shellCommand = shellCommand + " -d " + String(hasDepth) + " " + name
 			} else {
-				shellCommand = Dataset.listCommand + " -r " + name
+				shellCommand = shellCommand + " -r " + name
 			}
 			let datasetList = try currentHost.runSync(shellCommand)
 			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:self, $0) }))
