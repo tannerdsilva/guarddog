@@ -395,6 +395,7 @@ public class ZFS {
 			
 			let sscString = String(dsColumns[11]) // might not be specified ('-' when no value is given)
 			if sscString == "-" {
+				print(Colors.dim("[ ZFS ]{ ERROR }\tnil snapshot command."))
 				snapshotCommands = nil
 			} else {
 				let parsedSnapshots = SnapshotCommand.parse(sscString)
@@ -405,6 +406,14 @@ public class ZFS {
 				snapshotCommands = parsedSnapshots
 				print(Colors.magenta("[ ZFS ]\tsnapshot command initialized: \(parsedSnapshots)"))
 			}
+		}
+		
+		public func hash(into hasher:inout Hasher) {
+			hasher.combine(guid)
+		}
+		
+		public static func == (lhs:Dataset, rhs:Dataset) -> Bool {
+			return lhs.guid == rhs.guid
 		}
 	}
 	
