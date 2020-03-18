@@ -113,8 +113,8 @@
         "package": "TToolkit",
         "repositoryURL": "https://github.com/tannerdsilva/TToolkit.git",
         "state": {
-          "branch": "master",
-          "revision": "077ac7ed4bd4a7e2b72382ba95f5931b71156e0e",
+          "branch": "interactive-process-stabilize",
+          "revision": "db715d7bc5b3ae7c852b12ef78f7d85db2985f63",
           "version": null
         }
       }
