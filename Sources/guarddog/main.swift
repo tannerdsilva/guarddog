@@ -2,14 +2,6 @@ import Foundation
 import Signals
 import TToolkit
 
-let interruptSignal = DispatchSemaphore(value:0)
-
-Signals.trap(signal: .int) { signal in
-	
-	print("Interrupt signal caught")
-	interruptSignal.signal()
-}
-
 print(Colors.Cyan("guarddog initialized."))
 print(Colors.dim("* woof *"))
 
@@ -42,17 +34,13 @@ class PoolWatcher {
 
 let localshell = Host.local
 let zpools = try ZFS.ZPool.all()
-let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
-	return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
-})
-//
-//poolDatasets.explode(using: { (n, kv) -> Void in
-//	for (_, curDS) in kv.value.enumerated() {
-//		print(Colors.cyan("\(curDS.name.consolidatedString())"))
-//		let listedDataset = try curDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
-//		print(Colors.yellow("\(listedDataset.count)"))
-//	}
-//})
+while true {
+	let localshell = Host.local
+	let zpools = try ZFS.ZPool.all()
+	let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
+		return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
+	})
+}
 
 
 struct SystemProcess:Hashable {
@@ -171,7 +159,3 @@ struct SystemProcess:Hashable {
 //	}
 //}
 
-interruptSignal.wait()
-
-
-print("watchdog is shutting down.")
