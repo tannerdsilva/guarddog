@@ -40,7 +40,7 @@ while true {
 	let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
 		return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
 	})
-	usleep(5000000)
+	usleep(50)
 }
 
 
