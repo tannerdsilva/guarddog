@@ -5,7 +5,7 @@ import TToolkit
 print(Colors.Cyan("guarddog initialized."))
 print(Colors.dim("* woof *"))
 
-struct PoolWatcher {
+class PoolWatcher {
 	var zpool:ZFS.ZPool
 	
 	var snapshots:[ZFS.Dataset:Set<ZFS.Dataset>]
@@ -23,12 +23,16 @@ struct PoolWatcher {
 		})
 	}
 	
-	mutating func refreshDatasets() throws {
+	func refreshDatasets() throws {
 		let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
 		self.snapshots = thisPoolsDatasets.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 			return (key:thisDS, value:thisDSSnapshots)
 		})
+	}
+	
+	deinit {
+		print("Bye")
 	}
 }
 
