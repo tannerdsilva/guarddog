@@ -32,14 +32,19 @@ class PoolWatcher {
 	}
 }
 
-let localshell = Host.local
-let zpools = try ZFS.ZPool.all()
-while true {
+func loadZpools() throws -> Bool {
 	let localshell = Host.local
 	let zpools = try ZFS.ZPool.all()
 	let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
 		return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
 	})
+	return true
+}
+
+let localshell = Host.local
+let zpools = try ZFS.ZPool.all()
+while true {
+	_ = try loadZpools()
 }
 
 
@@ -71,7 +76,7 @@ struct SystemProcess:Hashable {
 		
 		//we want at least 12 elements
 		let columns = lineAsString.split(whereSeparator: { $0.isWhitespace })
-		guard columns.count > 11 else {
+		guard columns.count >= 12 else {
 			print(Colors.Red("[SystemProcess]{ INIT ERROR }\tUnable to parse data blob. At least 12 columns required to initialize a SystemProcess structure"))
 			return nil
 		}
