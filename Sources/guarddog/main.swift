@@ -28,14 +28,13 @@ class PoolWatcher {
 			return (key:thisDS, value:thisDSSnapshots)
 		})
 		
-		timer.duration = 2
-		timer.handler = { [weak self] _ in
-			guard let self = self else {
-				return
-			}
-			print("refreshing pool \(zpool.name)")
-			try? self.refreshDatasets()
-		}
+		//timer.duration = 2
+//		timer.handler = { [weak self] _ in
+//			guard let self = self else {
+//				return
+//			}
+//			try? self.refreshDatasets()
+//		}
 	}
 	
 	func refreshDatasets() throws {
@@ -47,6 +46,8 @@ class PoolWatcher {
 			})
 		}
 	}
+	
+	
 }
 
 func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
@@ -60,7 +61,7 @@ func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 
 while true {
 	let watcher = try loadPoolWatchers()
-	sleep(10)
+	sleep(1)
 }
 
 
