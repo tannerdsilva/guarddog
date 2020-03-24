@@ -10,7 +10,7 @@ class PoolWatcher {
 
 	var zpool:ZFS.ZPool
 	
-	var snapshots:[ZFS.Dataset:Set<ZFS.Dataset>]
+	var snapshots = [ZFS.Dataset:Set<ZFS.Dataset>]()
 	
 	var timer = TTimer()
 		
@@ -22,19 +22,15 @@ class PoolWatcher {
 		let datasetsForPool = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
 		print(Colors.Cyan("Initializing PoolWatcher for \(zpool.name) with \(datasetsForPool.count) datasets."))
 		
-		snapshots = datasetsForPool.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
-			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
-			print(Colors.magenta("\(thisDS.name.consolidatedString()) has \(thisDSSnapshots.count)"))
-			return (key:thisDS, value:thisDSSnapshots)
-		})
+		try refreshDatasets()
 		
-		//timer.duration = 2
-//		timer.handler = { [weak self] _ in
-//			guard let self = self else {
-//				return
-//			}
-//			try? self.refreshDatasets()
-//		}
+		timer.duration = 0.25
+		timer.handler = { [weak self] _ in
+			guard let self = self else {
+				return
+			}
+			try? self.refreshDatasets()
+		}
 	}
 	
 	func refreshDatasets() throws {
