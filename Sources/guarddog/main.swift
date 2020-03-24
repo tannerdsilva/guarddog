@@ -6,11 +6,17 @@ print(Colors.Cyan("guarddog initialized."))
 print(Colors.dim("* woof *"))
 
 class PoolWatcher {
+	var queue:DispatchQueue
+
 	var zpool:ZFS.ZPool
 	
 	var snapshots:[ZFS.Dataset:Set<ZFS.Dataset>]
 	
+	var timer = TTimer()
+		
 	init(zpool:ZFS.ZPool) throws {
+		let defPri = Priority.`default`
+		self.queue = DispatchQueue(label:"com.tannersilva.zfs-poolwatch", qos:defPri.asDispatchQoS(), target:defPri.globalConcurrentQueue)
 		self.zpool = zpool
 		
 		let datasetsForPool = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
@@ -21,32 +27,40 @@ class PoolWatcher {
 			print(Colors.magenta("\(thisDS.name.consolidatedString()) has \(thisDSSnapshots.count)"))
 			return (key:thisDS, value:thisDSSnapshots)
 		})
+		
+		timer.duration = 2
+		timer.handler = { [weak self] _ in
+			guard let self = self else {
+				return
+			}
+			print("refreshing pool \(zpool.name)")
+			try? self.refreshDatasets()
+		}
 	}
 	
 	func refreshDatasets() throws {
-		let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
-		self.snapshots = thisPoolsDatasets.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
-			let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
-			return (key:thisDS, value:thisDSSnapshots)
-		})
-	}
-	
-	deinit {
-		print("Bye")
+		try queue.sync {
+			let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
+			self.snapshots = thisPoolsDatasets.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
+				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+				return (key:thisDS, value:thisDSSnapshots)
+			})
+		}
 	}
 }
 
-func loadZpools() throws -> Bool {
+func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 	let localshell = Host.local
 	let zpools = try ZFS.ZPool.all()
 	let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
 		return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
 	})
-	return true
+	return watchers
 }
 
 while true {
-	_ = try loadZpools()
+	let watcher = try loadPoolWatchers()
+	sleep(10)
 }
 
 
