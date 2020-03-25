@@ -18,18 +18,16 @@ class PoolWatcher {
 		let defPri = Priority.`default`
 		self.queue = DispatchQueue(label:"com.tannersilva.zfs-poolwatch", qos:defPri.asDispatchQoS(), target:defPri.globalConcurrentQueue)
 		self.zpool = zpool
-		
-		let datasetsForPool = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
-		print(Colors.Cyan("Initializing PoolWatcher for \(zpool.name) with \(datasetsForPool.count) datasets."))
-		
+				
 		try refreshDatasets()
 		
-		timer.duration = 0.25
+		timer.duration = 5
 		timer.handler = { [weak self] _ in
 			guard let self = self else {
 				return
 			}
 			try? self.refreshDatasets()
+			self.requestedSnapshotFrequencies()
 		}
 	}
 	
@@ -43,6 +41,14 @@ class PoolWatcher {
 		}
 	}
 	
+	func requestedSnapshotFrequencies() -> [ZFS.SnapshotCommand:Set<ZFS.Dataset>]? {
+		let allSnapshotCommands = Set(snapshots.keys.compactMap( { $0.snapshotCommands } ).flatMap( { $0 } ))
+		print(Colors.magenta("listing snapshots"))
+		for (_, cursnap) in allSnapshotCommands.enumerated() {
+			print(Colors.yellow("\(cursnap)"))
+		}
+		return nil
+	}
 	
 }
 
@@ -55,10 +61,7 @@ func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 	return watchers
 }
 
-while true {
-	let watcher = try loadPoolWatchers()
-	sleep(1)
-}
+let poolWatchers = try loadPoolWatchers()
 
 
 struct SystemProcess:Hashable {
