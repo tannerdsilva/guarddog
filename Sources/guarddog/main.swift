@@ -39,7 +39,7 @@ class PoolWatcher:Hashable {
 			}
 			print(Colors.dim("[ PoolWatcher ] * refreshed datasets and snapshots *"))
 			try? self.refreshDatasetsAndSnapshots()
-			refreshTimer.duration = refreshTimer.duration! - 1
+			self.refreshTimer.duration = self.refreshTimer.duration! - 1
 		}
 		print("Timer scheduled \(Date())")
 	}
