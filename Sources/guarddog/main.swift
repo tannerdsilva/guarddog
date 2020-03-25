@@ -61,8 +61,15 @@ func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 	return watchers
 }
 
+let runSemaphore = DispatchSemaphore(value:0)
+
 let poolWatchers = try loadPoolWatchers()
 
+Signals.trap(signal:.int) { signal in
+	runSemaphore.signal()
+}
+
+runSemaphore.wait()
 
 struct SystemProcess:Hashable {
 	var pid:UInt64
