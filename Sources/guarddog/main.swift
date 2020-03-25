@@ -21,7 +21,7 @@ class PoolWatcher {
 				
 		try refreshDatasets()
 		
-		timer.duration = 5
+		timer.duration = 3
 		timer.handler = { [weak self] _ in
 			guard let self = self else {
 				return
@@ -33,6 +33,7 @@ class PoolWatcher {
 				for (_, curDS) in kv.value.enumerated() {
 					print(Colors.yellow(" \(curDS.name) -"), terminator:"")
 				}
+				print("\n")
 			}
 		}
 	}
