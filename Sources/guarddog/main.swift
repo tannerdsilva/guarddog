@@ -31,13 +31,14 @@ class PoolWatcher:Hashable {
 		try refreshDatasetsAndSnapshots()
 		
 		var dateTrigger:Date? = nil
-		
+		refreshTimer.anchor = dateAnchor
 		refreshTimer.duration = 3
 		refreshTimer.handler = { [weak self] refTimer in
 			guard let self = self else {
 				return
 			}
 			print(Colors.dim("[ PoolWatcher ] * refreshed datasets and snapshots *"))
+			print("\(Date())")
 			try? self.refreshDatasetsAndSnapshots()
 		}
 	}
