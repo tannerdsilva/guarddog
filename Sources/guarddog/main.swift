@@ -27,7 +27,8 @@ class PoolWatcher {
 				return
 			}
 			try? self.refreshDatasets()
-			self.requestedSnapshotFrequencies()
+			let sf = self.requestedSnapshotFrequencies()
+			print(Colors.cyan("\(sf)"))
 		}
 	}
 	
@@ -41,13 +42,29 @@ class PoolWatcher {
 		}
 	}
 	
-	func requestedSnapshotFrequencies() -> [ZFS.SnapshotCommand:Set<ZFS.Dataset>]? {
-		let allSnapshotCommands = Set(snapshots.keys.compactMap( { $0.snapshotCommands } ).flatMap( { $0 } ))
-		print(Colors.magenta("listing snapshots"))
-		for (_, cursnap) in allSnapshotCommands.enumerated() {
-			print(Colors.yellow("\(cursnap)"))
+	func requestedSnapshotFrequencies() -> [ZFS.SnapshotCommand:Set<ZFS.Dataset>] {
+		var buildData = [ZFS.SnapshotCommand:Set<ZFS.Dataset>]()
+		
+		func insert(snap:ZFS.SnapshotCommand, forDataset dataset:ZFS.Dataset) {
+			if var existingDatasets = buildData[snap] {
+				existingDatasets.update(with:dataset)
+			} else {
+				buildData[snap] = Set<ZFS.Dataset>([dataset])
+			}
 		}
-		return nil
+		
+		snapshots.keys.explode(using: { (n, k) -> (key:ZFS.Dataset, value:Set<ZFS.SnapshotCommand>)? in
+			if let hasSnapshotCommands = k.snapshotCommands {
+				return (key:k, value:hasSnapshotCommands) 
+			}
+			return nil
+		}, merge: { (n, kv) -> Void in
+			for (_, curSnap) in kv.value.enumerated() {
+				insert(snap:curSnap, forDataset:kv.key)
+			}
+		})
+	
+		return buildData
 	}
 	
 }
