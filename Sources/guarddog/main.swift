@@ -7,6 +7,13 @@ print(Colors.dim("* woof *"))
 
 let zfs_snapshotPrefix = "com-guarddog-autosnap_"
 
+func anchoredReferenceDate() -> Date {
+	let calendar = Calendar.current
+	return calendar.startOfDay(for:Date())
+}
+
+let dateAnchor = anchoredReferenceDate()
+
 class PoolWatcher:Hashable {
 	var queue:DispatchQueue
 
@@ -14,7 +21,7 @@ class PoolWatcher:Hashable {
 	
 	private var snapshots = [ZFS.Dataset:Set<ZFS.Dataset>]()
 	
-	var refreshTimer = TTimer(strict:true, autoRun:true)
+	var refreshTimer = TTimer(strict:true, autoRun:true, soon:true)
 		
 	init(zpool:ZFS.ZPool) throws {
 		let defPri = Priority.`default`
@@ -25,23 +32,13 @@ class PoolWatcher:Hashable {
 		
 		var dateTrigger:Date? = nil
 		
-		refreshTimer.duration = 5
+		refreshTimer.duration = 3
 		refreshTimer.handler = { [weak self] refTimer in
 			guard let self = self else {
 				return
 			}
-			if let currentDuration = self.refreshTimer.duration {
-				self.refreshTimer.duration = currentDuration - 1
-				if let newTrigger = dateTrigger {
-					print(Colors.yellow("time since last reschedule: \(newTrigger.timeIntervalSinceNow)"))
-				} else {
-					print("no ref date")
-				}
-			}
-			dateTrigger = Date()
-			print(Colors.dim("[ PoolWatcher ] * refreshed *"))
+			print(Colors.dim("[ PoolWatcher ] * refreshed datasets and snapshots *"))
 			try? self.refreshDatasetsAndSnapshots()
-			let sf = self.fullSnapCommandDatasetMapping()
 		}
 	}
 	
@@ -124,15 +121,15 @@ extension Collection where Element == ZFS.Dataset {
 //class ZFSSnapper {
 //	let priority:Priority
 //	let queue:DispatchQueue
-//	
+//
 //	var snapshotPrefix = zfs_snapshotPrefix
-//	
+//
 //	var poolwatchers:Set<PoolWatcher>
-//	
+//
 //	var snapshotCommands:[ZFS.SnapshotCommand:Set<ZFS.Dataset>]
-//	
+//
 //	var snapshotTimers = [TTimer]()
-//	
+//
 //	init() throws {
 //		self.priority = Priority.`default`
 //		self.queue = DispatchQueue(label:"com.tannersilva.instance.zfs-snapper", qos:priority.asDispatchQoS())
@@ -142,18 +139,18 @@ extension Collection where Element == ZFS.Dataset {
 //		})
 //		poolwatchers = Set(watchers.values)
 //	}
-//	
-//	
+//
+//
 //	func fullReschedule() throws {
 //		queue.sync {
 //			//invalidate all existing timers
 //			for (_, curTimer) in snapshotTimers.enumerated() {
 //				curTimer.cancel()
 //			}
-//			
+//		
 //			//remove all timers
 //			snapshotTimers.removeAll()
-//			
+//		
 //			poolwatchers.explode(using: { (n, curwatcher) -> [ZFS.SnapshotCommand:[ZFS.Dataset:Set<ZFS.Dataset>]] in
 //				let frequenciesAndDatasets = curwatcher.fullSnapCommandDatasetMapping()
 //				return frequenciesAndDatasets
@@ -163,8 +160,9 @@ extension Collection where Element == ZFS.Dataset {
 //					let datasetInQuestion = curKv.key
 //					let snapshotsForDataset = curKv.value
 //					let nextSnapshotDate = snapshotsForDataset.nextSnapshotDate(with:snapshotCommand)
-//					let newTimer = TTimer()
-//					
+//					let newTimer = TTimer(strict:true, autoRun:true)
+//					newTimer.anchor = dateAnchor
+//					newTimer.duration = 
 //				}
 //			})
 //		}		
