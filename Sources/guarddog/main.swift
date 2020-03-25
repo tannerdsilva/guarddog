@@ -41,6 +41,7 @@ class PoolWatcher:Hashable {
 			print("\(Date())")
 			try? self.refreshDatasetsAndSnapshots()
 		}
+		print("Timer scheduled \(Date())")
 	}
 	
 	func refreshDatasetsAndSnapshots() throws {
