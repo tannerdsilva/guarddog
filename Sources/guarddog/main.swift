@@ -30,20 +30,15 @@ class PoolWatcher:Hashable {
 			guard let self = self else {
 				return
 			}
-			defPri.globalConcurrentQueue.async { [weak self] in
-				guard let self = self else {
-					return
+			if let currentDuration = self.refreshTimer.duration {
+				self.refreshTimer.duration = currentDuration - 1
+				if let newTrigger = dateTrigger {
+					print(Colors.yellow("time since last reschedule: \(newTrigger.timeIntervalSinceNow)"))
+				} else {
+					print("no ref date")
 				}
-				if let currentDuration = self.refreshTimer.duration {
-					self.refreshTimer.duration = currentDuration - 1
-					if let newTrigger = dateTrigger {
-						print(Colors.yellow("time since last reschedule: \(newTrigger.timeIntervalSinceNow)"))
-					} else {
-						print("no ref date")
-					}
-				}
-				dateTrigger = Date()
 			}
+			dateTrigger = Date()
 			print(Colors.dim("[ PoolWatcher ] * refreshed *"))
 			try? self.refreshDatasetsAndSnapshots()
 			let sf = self.fullSnapCommandDatasetMapping()
