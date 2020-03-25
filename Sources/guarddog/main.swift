@@ -28,7 +28,12 @@ class PoolWatcher {
 			}
 			try? self.refreshDatasets()
 			let sf = self.requestedSnapshotFrequencies()
-			print(Colors.cyan("\(sf)"))
+			for (_, kv) in sf.enumerated() {
+				print(Colors.Magenta("\(kv.key) "), terminator:"")
+				for (_, curDS) in kv.value.enumerated() {
+					print(Colors.yellow(" \(curDS.name) -"), terminator:"")
+				}
+			}
 		}
 	}
 	
