@@ -23,6 +23,8 @@ class PoolWatcher:Hashable {
 				
 		try refreshDatasetsAndSnapshots()
 		
+		var dateTrigger:Date? = nil
+		
 		refreshTimer.duration = 5
 		refreshTimer.handler = { [weak self] refTimer in
 			guard let self = self else {
@@ -34,7 +36,12 @@ class PoolWatcher:Hashable {
 				}
 				if let currentDuration = self.refreshTimer.duration {
 					self.refreshTimer.duration = currentDuration - 1
-					print("rescheduled for \(currentDuration - 1)")
+					if let newTrigger = dateTrigger {
+						print(Colors.yellow("time since last reschedule: \(newTrigger.timeIntervalSinceNow)"))
+						dateTrigger = Date()
+					} else {
+						print("no ref date")
+					}
 				}
 			}
 			print(Colors.dim("[ PoolWatcher ] * refreshed *"))
