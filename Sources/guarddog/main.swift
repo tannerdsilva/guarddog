@@ -38,11 +38,11 @@ class PoolWatcher:Hashable {
 					self.refreshTimer.duration = currentDuration - 1
 					if let newTrigger = dateTrigger {
 						print(Colors.yellow("time since last reschedule: \(newTrigger.timeIntervalSinceNow)"))
-						dateTrigger = Date()
 					} else {
 						print("no ref date")
 					}
 				}
+				dateTrigger = Date()
 			}
 			print(Colors.dim("[ PoolWatcher ] * refreshed *"))
 			try? self.refreshDatasetsAndSnapshots()
