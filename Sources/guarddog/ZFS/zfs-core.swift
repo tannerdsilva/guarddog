@@ -184,6 +184,12 @@ public class ZFS {
 		var units:Double
 		var keep:UInt?
 		
+		public var secondsInterval:Double {
+			get {
+				return frequency.secondsInterval(units:units)
+			}
+		}
+		
 		//parses a string containing multiple snapshot commands, separated by a comma
 		public static func parse(_ commands:String) -> Set<SnapshotCommand> {
 			let subcommands = commands.split(separator:",")
@@ -532,6 +538,21 @@ public class ZFS {
 			let datasetList = try currentHost.runSync(shellCommand)
 			let datasets = Set(datasetList.stdout.compactMap({ Dataset(zpool:zpool, $0) }))
 			return datasets
+		}
+		
+		public func takeSnapshot(name snapname:String, recursive:Bool) throws {
+			let currentHost = Host.local
+			var nameModify = name
+			nameModify.snapName = snapname
+			let fullName = nameModify.consolidatedString() 
+			var shellCommand = "zfs snap "
+			if recursive {
+				shellCommand = shellCommand + "-r "
+			}
+			shellCommand.append(fullName)
+			
+			let result = try currentHost.runSync(shellCommand)
+			print("snap - \(fullName) - \(result.exitCode)")
 		}
 		
 		public func hash(into hasher:inout Hasher) {
