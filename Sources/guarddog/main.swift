@@ -21,7 +21,7 @@ class PoolWatcher:Hashable {
 	
 	private var snapshots = [ZFS.Dataset:Set<ZFS.Dataset>]()
 	
-	var refreshTimer = TTimer(strict:true, autoRun:true, soon:true)
+	var refreshTimer = TTimer(strict:true, autoRun:true)
 		
 	init(zpool:ZFS.ZPool) throws {
 		let defPri = Priority.`default`
@@ -47,7 +47,7 @@ class PoolWatcher:Hashable {
 	func refreshDatasetsAndSnapshots() throws {
 		try queue.sync {
 			let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
-			self.snapshots = thisPoolsDatasets.explode(using: { (nn, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
+			self.snapshots = thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 				return (key:thisDS, value:thisDSSnapshots)
 			})
@@ -120,56 +120,88 @@ extension Collection where Element == ZFS.Dataset {
 		return nextSnapEvent
 	}
 }
-//class ZFSSnapper {
-//	let priority:Priority
-//	let queue:DispatchQueue
-//
-//	var snapshotPrefix = zfs_snapshotPrefix
-//
-//	var poolwatchers:Set<PoolWatcher>
-//
-//	var snapshotCommands:[ZFS.SnapshotCommand:Set<ZFS.Dataset>]
-//
-//	var snapshotTimers = [TTimer]()
-//
-//	init() throws {
-//		self.priority = Priority.`default`
-//		self.queue = DispatchQueue(label:"com.tannersilva.instance.zfs-snapper", qos:priority.asDispatchQoS())
-//		let zpools = try ZFS.ZPool.all()
-//		let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
-//			return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
-//		})
-//		poolwatchers = Set(watchers.values)
-//	}
-//
-//
-//	func fullReschedule() throws {
-//		queue.sync {
-//			//invalidate all existing timers
-//			for (_, curTimer) in snapshotTimers.enumerated() {
-//				curTimer.cancel()
-//			}
-//		
-//			//remove all timers
-//			snapshotTimers.removeAll()
-//		
-//			poolwatchers.explode(using: { (n, curwatcher) -> [ZFS.SnapshotCommand:[ZFS.Dataset:Set<ZFS.Dataset>]] in
-//				let frequenciesAndDatasets = curwatcher.fullSnapCommandDatasetMapping()
-//				return frequenciesAndDatasets
-//			}, merge: { (n, frequencyAndDatasets) in
-//				let snapshotCommand = frequencyAndDatasets.key
-//				for (_, curKv) in frequencyAndDatasets.value.enumerated() {
-//					let datasetInQuestion = curKv.key
-//					let snapshotsForDataset = curKv.value
-//					let nextSnapshotDate = snapshotsForDataset.nextSnapshotDate(with:snapshotCommand)
-//					let newTimer = TTimer(strict:true, autoRun:true)
-//					newTimer.anchor = dateAnchor
-//					newTimer.duration = 
-//				}
-//			})
-//		}		
-//	}
-//}
+
+class ZFSSnapper {
+	let priority:Priority
+	let queue:DispatchQueue
+
+	var snapshotPrefix = zfs_snapshotPrefix
+
+	var poolwatchers:Set<PoolWatcher>
+
+	var snapshotCommands:[ZFS.SnapshotCommand:Set<ZFS.Dataset>]
+
+	var snapshotTimers = [TTimer]()
+	
+	let dateFormatter = DateFormatter()
+
+	init() throws {
+		self.priority = Priority.`default`
+		self.queue = DispatchQueue(label:"com.tannersilva.instance.zfs-snapper", qos:priority.asDispatchQoS())
+		let zpools = try ZFS.ZPool.all()
+		let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
+			return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
+		})
+		dateFormatter.dateFormat = "MM-dd-yyyy_HH:mm:ss"
+		poolwatchers = Set(watchers.values)
+	}
+	
+	func executeSnapshots(command:ZFS.SnapshotCommand, datasets:Set<ZFS.Dataset>) throws {
+		let nowString = snapshotDateString()
+		print(Colors.yellow("Going to take a snapshot for \(datasets). \(nowString)"))
+	}
+	
+	func snapshotDateString() -> String {
+		let nowDate = Date()
+		queue.sync {
+			return dateFormatter.string(from:nowDate)
+		}
+	}
+
+	func fullReschedule() throws {
+		queue.sync {
+			//invalidate all existing timers
+			for (_, curTimer) in snapshotTimers.enumerated() {
+				curTimer.cancel()
+			}
+			
+			//remove all timers
+			snapshotTimers.removeAll()
+			
+			//explode the pools
+			poolwatchers.explode(using: { (n, curwatcher) -> [TTimer] in
+				var buildTimers = [TTimer]()
+				//schedule a timer for each frequency of this pool
+				curwatcher.fullSnapCommandDatasetMapping().explode(using: { (_, curPoolData) -> TTimer in
+					let snapCommand = curPoolData.key
+					let setOfDatasets = Set(curPoolData.value.keys)
+					let nextSnapshotDate = setOfDatasets.nextSnapshotDate(with:snapCommand)
+					let newTimer = TTimer()
+					newTimer.anchor = dateAnchor
+					newTimer.duration = snapCommand.secondsInterval
+					newTimer.handler = { [weak self] in
+						guard let self = self else {
+							return
+						}
+						self.executeSnapshots(command:snapCommand, datasets:setOfDatasets)
+					}
+					if nextSnapshotDate == nil || nextSnapshotDate!.timeIntervalSinceNow < 0 {
+						newTimer.fire()
+					}
+					newTimer.activate()
+					print(Colors.Green("Timer scheduled. yay."))
+				}, merge: { (_, timerToAdd) in
+					buildTimers.append(timerToAdd)
+				})
+				return buildTimers
+			}, merge: { (_, timers) in
+				for (_, curTimer) in timers.enumerated() {
+					snapshotTimers.append(curTimer)
+				}
+			})
+		}		
+	}
+}
 
 func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 	let localshell = Host.local
