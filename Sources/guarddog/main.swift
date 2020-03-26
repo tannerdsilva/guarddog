@@ -146,6 +146,7 @@ class ZFSSnapper {
 		dateFormatter.dateFormat = "MM-dd-yyyy_HH:mm:ss"
 		poolwatchers = Set(watchers.values)
 		snapshotCommands = [ZFS.SnapshotCommand:Set<ZFS.Dataset>]()
+		fullReschedule()
 	}
 	
 	func executeSnapshots(command:ZFS.SnapshotCommand, datasets:Set<ZFS.Dataset>) throws {
