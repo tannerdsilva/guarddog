@@ -145,6 +145,7 @@ class ZFSSnapper {
 		})
 		dateFormatter.dateFormat = "MM-dd-yyyy_HH:mm:ss"
 		poolwatchers = Set(watchers.values)
+		print("pool watcher initialized with \(poolwatchers.count) values")
 		snapshotCommands = [ZFS.SnapshotCommand:Set<ZFS.Dataset>]()
 		try? fullReschedule()
 	}
