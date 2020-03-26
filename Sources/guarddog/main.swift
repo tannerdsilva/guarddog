@@ -196,7 +196,7 @@ class ZFSSnapper {
 				return buildTimers
 			}, merge: { (_, timers) in
 				for (_, curTimer) in timers.enumerated() {
-					snapshotTimers.append(curTimer)
+					self.snapshotTimers.append(curTimer)
 				}
 			})
 		}		
