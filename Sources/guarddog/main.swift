@@ -232,6 +232,7 @@ let snapper = try ZFSSnapper()
 
 sleep(8)
 try snapper.fullReschedule()
+print("snapper rescheduled")
 Signals.trap(signal:.int) { signal in
 	runSemaphore.signal()
 }
