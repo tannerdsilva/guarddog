@@ -217,7 +217,7 @@ func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 
 let runSemaphore = DispatchSemaphore(value:0)
 
-let poolWatchers = try loadPoolWatchers()
+let snapper = try ZFSSnapper()
 
 Signals.trap(signal:.int) { signal in
 	runSemaphore.signal()
