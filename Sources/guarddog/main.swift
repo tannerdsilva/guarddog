@@ -200,6 +200,7 @@ class ZFSSnapper {
 					if nextSnapshotDate == nil || nextSnapshotDate!.timeIntervalSinceNow < 0 {
 						newTimer.fire()
 					}
+					print("attempting to fire a timer")
 					newTimer.activate()
 					print(Colors.Green("Timer scheduled. yay."))
 					return newTimer
