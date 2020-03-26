@@ -41,7 +41,8 @@ class PoolWatcher:Hashable {
 			try? self.refreshDatasetsAndSnapshots()
 			self.refreshTimer.duration = self.refreshTimer.duration! - 1
 		}
-		print("Timer scheduled \(Date())")
+		refreshTimer.activate()
+		print(Colors.dim("refresh timer scheduled"))
 	}
 	
 	func refreshDatasetsAndSnapshots() throws {
