@@ -184,20 +184,24 @@ class ZFSSnapper {
 				var buildTimers = [TTimer]()
 				//schedule a timer for each frequency of this pool
 				datasetMapping.explode(using: { (_, curPoolData) -> TTimer in
-					print("FUCK")
 					let snapCommand = curPoolData.key
 					let setOfDatasets = Set(curPoolData.value.keys)
 					let nextSnapshotDate = setOfDatasets.nextSnapshotDate(with:snapCommand)
 					let newTimer = TTimer()
+										print("FUCK")
 					newTimer.anchor = dateAnchor
+					print("anchor")
 					newTimer.duration = snapCommand.secondsInterval
+					print("duration")
 					newTimer.handler = { [weak self] _ in
 						guard let self = self else {
 							return
 						}
 						try? self.executeSnapshots(command:snapCommand, datasets:setOfDatasets)
 					}
+					print("handler")
 					if nextSnapshotDate == nil || nextSnapshotDate!.timeIntervalSinceNow < 0 {
+						print("=> fire attempt")
 						newTimer.fire()
 					}
 					print("attempting to fire a timer")
