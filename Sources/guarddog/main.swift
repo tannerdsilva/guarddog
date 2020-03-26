@@ -183,7 +183,8 @@ class ZFSSnapper {
 				print(Colors.cyan("there were \(datasetMapping.count) values found for \(curwatcher.zpool.name)"))
 				var buildTimers = [TTimer]()
 				//schedule a timer for each frequency of this pool
-				curwatcher.fullSnapCommandDatasetMapping().explode(using: { (_, curPoolData) -> TTimer in
+				datasetMapping.explode(using: { (_, curPoolData) -> TTimer in
+					print("FUCK")
 					let snapCommand = curPoolData.key
 					let setOfDatasets = Set(curPoolData.value.keys)
 					let nextSnapshotDate = setOfDatasets.nextSnapshotDate(with:snapCommand)
