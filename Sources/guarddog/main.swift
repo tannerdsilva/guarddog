@@ -21,7 +21,7 @@ class PoolWatcher:Hashable {
 	
 	private var snapshots = [ZFS.Dataset:Set<ZFS.Dataset>]()
 	
-	var refreshTimer = TTimer(strict:true, autoRun:true)
+	var refreshTimer = TTimer()
 		
 	init(zpool:ZFS.ZPool) throws {
 		let defPri = Priority.`default`
@@ -144,6 +144,7 @@ class ZFSSnapper {
 		})
 		dateFormatter.dateFormat = "MM-dd-yyyy_HH:mm:ss"
 		poolwatchers = Set(watchers.values)
+		snapshotCommands = [ZFS.SnapshotCommand:Set<ZFS.Dataset>]()
 	}
 	
 	func executeSnapshots(command:ZFS.SnapshotCommand, datasets:Set<ZFS.Dataset>) throws {
@@ -153,7 +154,7 @@ class ZFSSnapper {
 	
 	func snapshotDateString() -> String {
 		let nowDate = Date()
-		queue.sync {
+		return queue.sync {
 			return dateFormatter.string(from:nowDate)
 		}
 	}
@@ -179,17 +180,18 @@ class ZFSSnapper {
 					let newTimer = TTimer()
 					newTimer.anchor = dateAnchor
 					newTimer.duration = snapCommand.secondsInterval
-					newTimer.handler = { [weak self] in
+					newTimer.handler = { [weak self] _ in
 						guard let self = self else {
 							return
 						}
-						self.executeSnapshots(command:snapCommand, datasets:setOfDatasets)
+						try? self.executeSnapshots(command:snapCommand, datasets:setOfDatasets)
 					}
 					if nextSnapshotDate == nil || nextSnapshotDate!.timeIntervalSinceNow < 0 {
 						newTimer.fire()
 					}
 					newTimer.activate()
 					print(Colors.Green("Timer scheduled. yay."))
+					return newTimer
 				}, merge: { (_, timerToAdd) in
 					buildTimers.append(timerToAdd)
 				})
