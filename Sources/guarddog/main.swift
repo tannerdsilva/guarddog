@@ -220,6 +220,8 @@ let runSemaphore = DispatchSemaphore(value:0)
 
 let snapper = try ZFSSnapper()
 
+sleep(8)
+try snapper.fullReschedule()
 Signals.trap(signal:.int) { signal in
 	runSemaphore.signal()
 }
