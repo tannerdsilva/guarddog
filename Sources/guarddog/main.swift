@@ -163,16 +163,22 @@ class ZFSSnapper {
 
 	func fullReschedule() throws {
 		queue.sync {
+			print("Attempting to schedule snapshot commands")
 			//invalidate all existing timers
 			for (_, curTimer) in snapshotTimers.enumerated() {
+				print(Colors.Red("."), terminator:"")
 				curTimer.cancel()
 			}
+			print("\n", terminator:"")
 			
 			//remove all timers
 			snapshotTimers.removeAll()
+			print(Colors.red("all timers removed"))
 			
 			//explode the pools
 			poolwatchers.explode(using: { (n, curwatcher) -> [TTimer] in
+				print(Colors.yellow("exploding for \(curwatcher.zpool.name)"))
+				
 				var buildTimers = [TTimer]()
 				//schedule a timer for each frequency of this pool
 				curwatcher.fullSnapCommandDatasetMapping().explode(using: { (_, curPoolData) -> TTimer in
@@ -196,6 +202,7 @@ class ZFSSnapper {
 					return newTimer
 				}, merge: { (_, timerToAdd) in
 					buildTimers.append(timerToAdd)
+					print(Colors.dim("."), terminator:"")
 				})
 				return buildTimers
 			}, merge: { (_, timers) in
@@ -203,6 +210,7 @@ class ZFSSnapper {
 					self.snapshotTimers.append(curTimer)
 				}
 			})
+			print("\n", terminator:"")
 		}		
 	}
 }
