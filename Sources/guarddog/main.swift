@@ -150,7 +150,7 @@ class ZFSSnapper {
 	func executeSnapshots(command:ZFS.SnapshotCommand, datasets:Set<ZFS.Dataset>) throws {
 		let nowString = snapshotString()
 		for (_, newDataset) in datasets.enumerated() {
-			print(Colors.yellow("Going to take snapshot for \(newDataset.name)\t\(nowString)"))
+			print(Colors.yellow("Going to take snapshot for \(newDataset.name.consolidatedString())\t\(nowString)"))
 		}
 	}
 	
