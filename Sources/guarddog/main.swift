@@ -37,12 +37,9 @@ class PoolWatcher:Hashable {
 			guard let self = self else {
 				return
 			}
-			print(Colors.dim("[ PoolWatcher ] * refreshed datasets and snapshots *"))
 			try? self.refreshDatasetsAndSnapshots()
-			self.refreshTimer.duration = self.refreshTimer.duration! - 1
 		}
 		refreshTimer.activate()
-		print(Colors.dim("refresh timer scheduled"))
 	}
 	
 	func refreshDatasetsAndSnapshots() throws {
@@ -151,36 +148,33 @@ class ZFSSnapper {
 	}
 	
 	func executeSnapshots(command:ZFS.SnapshotCommand, datasets:Set<ZFS.Dataset>) throws {
-		let nowString = snapshotDateString()
-		print(Colors.yellow("Going to take a snapshot for \(datasets). \(nowString)"))
+		let nowString = snapshotString()
+		for (_, newDataset) in datasets.enumerated() {
+			print(Colors.yellow("Going to take snapshot for \(newDataset.name)\t\(nowString)"))
+		}
 	}
 	
-	func snapshotDateString() -> String {
+	func snapshotString() -> String {
 		let nowDate = Date()
-		return queue.sync {
+		let nowString = queue.sync {
 			return dateFormatter.string(from:nowDate)
 		}
+		return snapshotPrefix + nowString
 	}
 
 	func fullReschedule() throws {
 		queue.sync {
-			print("Attempting to schedule snapshot commands")
 			//invalidate all existing timers
 			for (_, curTimer) in snapshotTimers.enumerated() {
-				print(Colors.Red("."), terminator:"")
 				curTimer.cancel()
 			}
-			print("\n", terminator:"")
-			
+
 			//remove all timers
 			snapshotTimers.removeAll()
-			print(Colors.red("all timers removed"))
-			
+
 			//explode the pools
 			poolwatchers.explode(using: { (n, curwatcher) -> [TTimer] in
-				print(Colors.yellow("exploding for \(curwatcher.zpool.name)"))
 				let datasetMapping = curwatcher.fullSnapCommandDatasetMapping()
-				print(Colors.cyan("there were \(datasetMapping.count) values found for \(curwatcher.zpool.name)"))
 				var buildTimers = [TTimer]()
 				//schedule a timer for each frequency of this pool
 				datasetMapping.explode(using: { (_, curPoolData) -> TTimer in
@@ -188,29 +182,21 @@ class ZFSSnapper {
 					let setOfDatasets = Set(curPoolData.value.keys)
 					let nextSnapshotDate = setOfDatasets.nextSnapshotDate(with:snapCommand)
 					let newTimer = TTimer()
-										print("FUCK")
 					newTimer.anchor = dateAnchor
-					print("anchor")
 					newTimer.duration = snapCommand.secondsInterval
-					print("duration")
 					newTimer.handler = { [weak self] _ in
 						guard let self = self else {
 							return
 						}
 						try? self.executeSnapshots(command:snapCommand, datasets:setOfDatasets)
 					}
-					print("handler")
 					if nextSnapshotDate == nil || nextSnapshotDate!.timeIntervalSinceNow < 0 {
-						print("=> fire attempt")
 						newTimer.fire()
 					}
-					print("attempting to fire a timer")
 					newTimer.activate()
-					print(Colors.Green("Timer scheduled. yay."))
 					return newTimer
 				}, merge: { (_, timerToAdd) in
 					buildTimers.append(timerToAdd)
-					print(Colors.dim("."), terminator:"")
 				})
 				return buildTimers
 			}, merge: { (_, timers) in
