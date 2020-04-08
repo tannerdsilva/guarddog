@@ -51,7 +51,7 @@
         "repositoryURL": "https://github.com/pvieito/CommandLineKit.git",
         "state": {
           "branch": "master",
-          "revision": "a4ca3c200b87490d070c930d5033ade2fd26ef71",
+          "revision": "383b1c62107f50cb6e9bb1c6ff0ec6a2e22fac0f",
           "version": null
         }
       },
@@ -69,7 +69,7 @@
         "repositoryURL": "https://github.com/pvieito/LoggerKit.git",
         "state": {
           "branch": "master",
-          "revision": "2d1cecdc0c8c01a0714031c7e0740318f5b1a60e",
+          "revision": "84d742edcb38e330c2034149a91285fac866e87a",
           "version": null
         }
       },
@@ -80,6 +80,15 @@
           "branch": "master",
           "revision": "7aec79aeceb95e18c0e77d07b3cbc27eb77b7a24",
           "version": null
+        }
+      },
+      {
+        "package": "Rainbow",
+        "repositoryURL": "https://github.com/onevcat/Rainbow",
+        "state": {
+          "branch": null,
+          "revision": "9c52c1952e9b2305d4507cf473392ac2d7c9b155",
+          "version": "3.1.5"
         }
       },
       {
@@ -114,7 +123,7 @@
         "repositoryURL": "https://github.com/tannerdsilva/TToolkit.git",
         "state": {
           "branch": "dev",
-          "revision": "e3fffa867d8439a7d25a73d6f83a69e96dc1d79c",
+          "revision": "9283a84b6962e689bd5d64db593d9ff704dfe7a3",
           "version": null
         }
       }

@@ -119,6 +119,21 @@ extension Collection where Element == ZFS.Dataset {
 	}
 }
 
+class SnapAnticipator {
+	let priority:Priority
+	let queue:DispatchQueue
+	
+	init() {
+		let defaultPri = Priority.`default`
+		self.priority = defaultPri
+		self.queue = defaultPri.globalConcurrentQueue
+	}
+}
+
+/*
+	This object works with the PoolWatcher objects to schedule the next snapshot.
+	This object has no regard for snapshot events that might overlap...this is simply concerned with 
+*/
 class ZFSSnapper {
 	let priority:Priority
 	let queue:DispatchQueue
