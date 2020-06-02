@@ -122,8 +122,8 @@
         "package": "TToolkit",
         "repositoryURL": "https://github.com/tannerdsilva/TToolkit.git",
         "state": {
-          "branch": "dev",
-          "revision": "9283a84b6962e689bd5d64db593d9ff704dfe7a3",
+          "branch": "process-stable",
+          "revision": "4af3e7cfc1579bc157dce4beffa51f41f0bb1434",
           "version": null
         }
       }
