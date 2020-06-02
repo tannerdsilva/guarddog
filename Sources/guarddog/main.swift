@@ -45,10 +45,16 @@ class PoolWatcher:Hashable {
 	func refreshDatasetsAndSnapshots() throws {
 		try queue.sync {
 			let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
-			self.snapshots = thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
+			var snapshotBuild = [ZFS.Dataset:Set<ZFS.Dataset>]()
+			
+			thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 				return (key:thisDS, value:thisDSSnapshots)
-			})
+			}, merge: { (n, thiskv) in
+				if var hasValues = snapshotBuild[thiskv.key] {
+					hasValues.formUnion(thiskv)
+				}	
+			}
 		}
 	}
 
@@ -236,8 +242,10 @@ func loadPoolWatchers() throws -> [ZFS.ZPool:PoolWatcher] {
 let runSemaphore = DispatchSemaphore(value:0)
 
 let snapper = try ZFSSnapper()
+print("Snapper initialized")
 
 sleep(8)
+
 try snapper.fullReschedule()
 print("snapper rescheduled")
 
