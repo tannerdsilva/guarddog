@@ -51,7 +51,7 @@ class PoolWatcher:Hashable {
 				return (key:thisDS, value:thisDSSnapshots)
 			}, merge: { (n, thiskv) in
 				if var hasValues = snapshotBuild[thiskv.key] {
-					hasValues.formUnion(thiskv)
+					hasValues.formUnion(thiskv.value)
 				}
 			}
 		}
