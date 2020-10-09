@@ -54,6 +54,8 @@ class PoolWatcher:Hashable {
 			}, merge: { (n, thiskv) in
 				if var hasValues = snapshotBuild[thiskv.key] {
 					hasValues.formUnion(thiskv.value)
+				} else {
+					snapshotBuild[thiskv.key] = thiskv.value
 				}
 			})
 			self.snapshots = snapshotBuild
@@ -198,6 +200,7 @@ class ZFSSnapper {
 			//explode the pools
 			poolwatchers.explode(using: { (n, curwatcher) -> [TTimer] in
 				let datasetMapping = curwatcher.fullSnapCommandDatasetMapping()
+				print(Colors.Yellow("OK FOUND \(datasetMapping.count) snap commands"))
 				var buildTimers = [TTimer]()
 				//schedule a timer for each frequency of this pool
 				datasetMapping.explode(using: { (_, curPoolData) -> TTimer in
