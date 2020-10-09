@@ -32,7 +32,7 @@ class PoolWatcher:Hashable {
 		
 		var dateTrigger:Date? = nil
 		refreshTimer.anchor = dateAnchor
-		refreshTimer.duration = 5
+		refreshTimer.duration = 600
 		refreshTimer.handler = { [weak self] refTimer in
 			guard let self = self else {
 				return
