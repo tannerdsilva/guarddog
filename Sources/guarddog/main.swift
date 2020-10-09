@@ -53,7 +53,7 @@ class PoolWatcher:Hashable {
 				if var hasValues = snapshotBuild[thiskv.key] {
 					hasValues.formUnion(thiskv.value)
 				}
-			}
+			})
 		}
 	}
 
