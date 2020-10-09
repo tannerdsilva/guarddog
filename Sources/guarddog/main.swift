@@ -45,6 +45,7 @@ class PoolWatcher:Hashable {
 	func refreshDatasetsAndSnapshots() throws {
 		try queue.sync {
 			let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
+			print(Colors.cyan("attempting to build dataset with the following pool types \(thisPoolsDatasets.count)"))
 			var snapshotBuild = [ZFS.Dataset:Set<ZFS.Dataset>]()  
 			thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
