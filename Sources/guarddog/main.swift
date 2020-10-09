@@ -49,6 +49,7 @@ class PoolWatcher:Hashable {
 			var snapshotBuild = [ZFS.Dataset:Set<ZFS.Dataset>]()  
 			thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
+				print(Colors.magenta("\(thisDS.name.consolidatedString()) has \(thisDSSnapshots.count) snapshots"))
 				return (key:thisDS, value:thisDSSnapshots)
 			}, merge: { (n, thiskv) in
 				if var hasValues = snapshotBuild[thiskv.key] {
