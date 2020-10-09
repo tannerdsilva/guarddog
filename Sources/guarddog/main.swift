@@ -215,6 +215,7 @@ class ZFSSnapper {
 						newTimer.fire()
 					}
 					newTimer.activate()
+					print(Colors.Green("Timer scheduled"))
 					return newTimer
 				}, merge: { (_, timerToAdd) in
 					buildTimers.append(timerToAdd)
