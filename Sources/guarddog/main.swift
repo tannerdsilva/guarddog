@@ -25,7 +25,7 @@ class PoolWatcher:Hashable {
 		
 	init(zpool:ZFS.ZPool) throws {
 		let defPri = Priority.`default`
-		self.queue = DispatchQueue(label:"com.tannersilva.zfs-poolwatch", qos:defPri.asDispatchQoS(), target:defPri.globalConcurrentQueue)
+		self.queue = DispatchQueue(label:"com.tannersilva.zfs-poolwatch")
 		self.zpool = zpool
 				
 		try refreshDatasetsAndSnapshots()
@@ -45,15 +45,14 @@ class PoolWatcher:Hashable {
 	func refreshDatasetsAndSnapshots() throws {
 		try queue.sync {
 			let thisPoolsDatasets = try zpool.listDatasets(depth:nil, types:[ZFS.DatasetType.filesystem, ZFS.DatasetType.volume])
-			var snapshotBuild = [ZFS.Dataset:Set<ZFS.Dataset>]()
-			
+			var snapshotBuild = [ZFS.Dataset:Set<ZFS.Dataset>]()  
 			thisPoolsDatasets.explode(using: { (_, thisDS) -> (key:ZFS.Dataset, value:Set<ZFS.Dataset>) in
 				let thisDSSnapshots = try thisDS.listDatasets(depth:1, types:[ZFS.DatasetType.snapshot])
 				return (key:thisDS, value:thisDSSnapshots)
 			}, merge: { (n, thiskv) in
 				if var hasValues = snapshotBuild[thiskv.key] {
 					hasValues.formUnion(thiskv)
-				}	
+				}
 			}
 		}
 	}
