@@ -54,6 +54,7 @@ class PoolWatcher:Hashable {
 					hasValues.formUnion(thiskv.value)
 				}
 			})
+			self.snapshots = snapshotBuild
 		}
 	}
 
@@ -158,7 +159,7 @@ class ZFSSnapper {
 		self.queue = DispatchQueue(label:"com.tannersilva.instance.zfs-snapper", qos:priority.asDispatchQoS())
 		let zpools = try ZFS.ZPool.all()
 		let watchers = zpools.explode(using: { (n, thisZpool) -> (key:ZFS.ZPool, value:PoolWatcher) in
-			return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool))
+			return (key:thisZpool, value:try PoolWatcher(zpool:thisZpool)) 
 		})
 		dateFormatter.dateFormat = "MM-dd-yyyy_HH:mm:ss"
 		poolwatchers = Set(watchers.values)
