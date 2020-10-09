@@ -11,7 +11,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url:"https://github.com/tannerdsilva/TToolkit.git", .revision("c2f5fa3195c7ac080c31c2ede05ba46e12eaf98ac349fa6e99a33bce41e5d4b15ce26d31ab6a458f")),
+        .package(url:"https://github.com/tannerdsilva/TToolkit.git", .revision("c2f5fa3195c7ac0e41e5d4b15ce26d31ab6a458f")),
         .package(url:"https://github.com/tannerdsilva/Commander.git", .upToNextMinor(from:"0.9.1")),
         .package(url:"https://github.com/tannerdsilva/PythonKit.git", .branch("master")),
         .package(url:"https://github.com/IBM-Swift/BlueSignals.git", .upToNextMinor(from:"1.0.21"))
