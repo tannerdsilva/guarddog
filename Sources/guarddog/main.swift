@@ -69,7 +69,7 @@ class PoolWatcher:Hashable {
 					buildData[snap] = Set<ZFS.Dataset>([dataset])
 				}
 			}
-		
+			print(Colors.cyan("attempting to make the full snap dataset mapping with the following snapshots: \(snapshots.count)"))
 			snapshots.keys.explode(using: { (n, k) -> (key:ZFS.Dataset, value:Set<ZFS.SnapshotCommand>)? in
 				if let hasSnapshotCommands = k.snapshotCommands {
 					return (key:k, value:hasSnapshotCommands) 
